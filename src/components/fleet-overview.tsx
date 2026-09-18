@@ -6,6 +6,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
+
 import type { TenantFleet, Ticket } from "@/lib/domain/types";
 
 const features = tableFeatures({});
@@ -55,6 +56,7 @@ export function FleetOverview() {
       <div className="rounded-lg border border-border bg-surface p-6">
         <p className="text-sm text-danger">Failed to load fleet.</p>
         <button
+          type="button"
           onClick={() => refetch()}
           className="mt-2 text-sm text-primary underline"
         >

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { fetchFleet } from "@/lib/api/fleet";
 
 export const dynamic = "force-dynamic";

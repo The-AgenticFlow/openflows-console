@@ -1,4 +1,5 @@
 import type { RedisClientType } from "redis";
+
 import type {
   CiReadiness,
   PendingPr,
