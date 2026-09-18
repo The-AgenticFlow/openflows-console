@@ -17,7 +17,7 @@ export async function listTenants(): Promise<string[]> {
     const tenant = rest.split(":")[0];
     if (tenant) tenants.add(tenant);
   }
-  return [...tenants].sort();
+  return [...tenants].sort((a, b) => a.localeCompare(b));
 }
 
 export async function readTenantFleet(tenant: string): Promise<TenantFleet> {

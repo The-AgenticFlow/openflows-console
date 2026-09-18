@@ -1,6 +1,6 @@
-import type { TenantFleet } from "@/lib/domain/types";
-import { listTenants, readTenantFleet } from "@/lib/api/redis-reader";
 import { mockFleet } from "@/lib/api/mock-data";
+import { listTenants, readTenantFleet } from "@/lib/api/redis-reader";
+import type { TenantFleet } from "@/lib/domain/types";
 
 // Typed data source seam (ADR-0001 / ADR-0002 / ADR-0005).
 // - "mock" (default): bundled fixtures, no infrastructure needed for dev.
