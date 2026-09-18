@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a defect in the OpenFlows Console
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please be specific so we can reproduce quickly.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, OS, and app version (e.g. Chrome 130 / macOS / commit `abc123`)
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What should happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What actually happened? Include error messages.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimum steps to reproduce the issue.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / evidence
+      description: Paste relevant console logs or screenshots (evidence).
+  - type: markdown
+    attributes:
+      value: "## AI usage declaration"
+  - type: dropdown
+    id: ai
+    attributes:
+      label: Was AI used to draft this report?
+      options:
+        - "No"
+        - "Yes (described below)"
+    validations:
+      required: true
+  - type: textarea
+    id: ai_details
+    attributes:
+      label: If yes, what did AI do and what did you verify?

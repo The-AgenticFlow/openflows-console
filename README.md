@@ -48,7 +48,26 @@ pnpm lint
 
 ## Technology
 
-Built with [Next.js](https://nextjs.org) (App Router), [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), and [Tailwind CSS](https://tailwindcss.com) — always on the latest stable versions.
+Built with [Next.js](https://nextjs.org) (App Router), [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), and [Tailwind CSS](https://tailwindcss.com) — always on the latest stable versions — plus the [TanStack](https://tanstack.com) suite (Query, Table, Virtual) for data, tables, and lists.
+
+## Project structure
+
+```
+src/
+├── app/                  # Next.js App Router routes & layout
+├── components/           # React components
+└── lib/
+    ├── domain/types.ts   # Typed domain models mirroring the OpenFlows Redis schema
+    ├── providers.tsx     # TanStack Query client + devtools
+    └── api/              # Data sources (swap for the real reader in T2)
+docs/
+├── architecture/         # System architecture
+└── adr/                  # Architecture Decision Records
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, workflow, and quality gates. The app runs standalone in **mock mode** — no OpenFlows deployment or credentials needed to develop.
 
 ## Roadmap
 
