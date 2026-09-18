@@ -4,13 +4,16 @@ Thanks for your interest in contributing! OpenFlows Console is the operator cont
 
 ## Table of contents
 
-- [Development setup](#development-setup)
-- [Project structure](#project-structure)
-- [Development workflow](#development-workflow)
-- [Quality gates](#quality-gates)
-- [Pull requests](#pull-requests)
-- [Issue guidelines](#issue-guidelines)
-- [AI usage & governance](#ai-usage--governance)
+- [Contributing to OpenFlows Console](#contributing-to-openflows-console)
+  - [Table of contents](#table-of-contents)
+  - [Development setup](#development-setup)
+  - [Project structure](#project-structure)
+  - [Development workflow](#development-workflow)
+    - [Mock/fixture mode](#mockfixture-mode)
+  - [Quality gates](#quality-gates)
+  - [Pull requests](#pull-requests)
+  - [Issue guidelines](#issue-guidelines)
+  - [AI usage \& governance](#ai-usage--governance)
 
 ## Development setup
 
@@ -28,7 +31,7 @@ The app runs standalone in **mock mode** by default (see [Mock/fixture mode](#mo
 
 ## Project structure
 
-```
+```text
 src/
 ├── app/                  # Next.js App Router routes & layout
 │   ├── layout.tsx        # Root layout (wraps app in TanStack Query provider)
@@ -98,5 +101,3 @@ AI may accelerate work, but humans own intent, verification, and consequences. T
 
 - Declare AI assistance in the issue/PR **AI usage declaration**.
 - Provide a **source of truth** reference (URL or `#N`) and **verification evidence** (commands/logs). No evidence means it is not done.
-
-See the [AI Governance site](https://adorsys-gis.github.io/ai-governance/) for the full doctrine.
