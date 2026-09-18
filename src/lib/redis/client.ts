@@ -1,3 +1,5 @@
+// Redis client: lazy singleton connection to the OpenFlows SharedStore, plus
+// helpers for the tenant-namespaced key scheme (`ns:<tenant>:<key>`).
 import { createClient, type RedisClientType } from "redis";
 
 let client: RedisClientType | null = null;

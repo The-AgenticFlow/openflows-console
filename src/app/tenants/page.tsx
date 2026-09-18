@@ -1,3 +1,5 @@
+// Tenants route: manage multi-tenant workspaces and their resources.
+// Placeholder for now — tenant management is not implemented yet.
 import { PageHeader } from "@/components/page-header";
 
 export default function TenantsPage() {

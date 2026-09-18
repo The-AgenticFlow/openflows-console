@@ -1,3 +1,5 @@
+// Kanban route: task board tracking tickets through their workflow phases.
+// Placeholder for now — the live board is not implemented yet.
 import { PageHeader } from "@/components/page-header";
 
 export default function KanbanPage() {

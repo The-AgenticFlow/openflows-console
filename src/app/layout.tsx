@@ -1,3 +1,5 @@
+// Root layout: global styles + fonts, wraps every page in the TanStack Query
+// Providers and the shared SiteHeader. Owns the app-wide metadata.
 import "./globals.css";
 
 import type { Metadata } from "next";

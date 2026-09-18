@@ -1,3 +1,6 @@
+// Redis reader: the "real" data source (ADR-0002 / ADR-0005). Reads the
+// tenant-namespaced Redis SharedStore keys and maps them onto the typed domain
+// models. Defensive: missing or unparseable JSON degrades to empty values.
 import type { RedisClientType } from "redis";
 
 import type {

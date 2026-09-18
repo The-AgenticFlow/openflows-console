@@ -1,3 +1,4 @@
+// Home route: the Dashboard, rendering the live fleet status overview.
 import { FleetOverview } from "@/components/fleet-overview";
 import { PageHeader } from "@/components/page-header";
 

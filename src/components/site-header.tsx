@@ -1,3 +1,5 @@
+// SiteHeader: sticky top navigation bar with the app logo, primary nav links
+// (highlighting the active route), and a mock-mode status indicator.
 "use client";
 
 import Link from "next/link";

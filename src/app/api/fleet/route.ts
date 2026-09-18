@@ -1,3 +1,5 @@
+// Fleet API route: exposes the aggregated fleet snapshot as JSON for the
+// dashboard client. Forced dynamic so it reflects live state (never cached).
 import { NextResponse } from "next/server";
 
 import { fetchFleet } from "@/lib/api/fleet";

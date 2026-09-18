@@ -1,3 +1,6 @@
+// FleetOverview: dashboard table of the fleet's tickets (ID / title / priority /
+// status). Client component that polls /api/fleet via TanStack Query every 15s
+// and renders the data with TanStack Table v9.
 "use client";
 
 import { useQuery } from "@tanstack/react-query";

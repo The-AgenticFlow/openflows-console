@@ -1,3 +1,5 @@
+// PageHeader: shared, consistent title + optional description block used at the
+// top of every page to keep headings uniform.
 export function PageHeader({
   title,
   description,
