@@ -1,19 +1,20 @@
-import type { TenantFleet } from "@/lib/domain/types";
 import { mockFleet } from "@/lib/api/mock-data";
+import { listTenants, readTenantFleet } from "@/lib/api/redis-reader";
+import type { TenantFleet } from "@/lib/domain/types";
 
-// Typed data source seam (ADR-0001 / ADR-0002).
-// Mock mode returns bundled fixtures so the app runs standalone.
-// TODO(T2): implement the real Redis reader behind this seam and route on
-// OPENFLOWS_DATA_SOURCE === "real" (defensive per ADR-0005).
-
+// Typed data source seam (ADR-0001 / ADR-0002 / ADR-0005).
+// - "mock" (default): bundled fixtures, no infrastructure needed for dev.
+// - "real": reads tenant-namespaced Redis keys via the typed reader.
+// Defensive: missing/unparseable keys degrade to empty values, and unknown
+// upstream fields are ignored (never fatal).
 const DATA_SOURCE = process.env.OPENFLOWS_DATA_SOURCE ?? "mock";
 
 export async function fetchFleet(): Promise<TenantFleet[]> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
   if (DATA_SOURCE === "real") {
-    throw new Error("Real data source not implemented yet (T2). Keep OPENFLOWS_DATA_SOURCE=mock for development.");
+    const tenants = await listTenants();
+    return Promise.all(tenants.map((tenant) => readTenantFleet(tenant)));
   }
 
+  await new Promise((resolve) => setTimeout(resolve, 400));
   return mockFleet;
 }

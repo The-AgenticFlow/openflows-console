@@ -1,11 +1,6 @@
-// Typed domain models mirroring the OpenFlows Redis SharedStore schema.
+// Typed domain models for the OpenFlows Redis SharedStore schema.
 // Defensive per ADR-0005: fields are tolerant to upstream additions — unknown
 // fields are ignored, optional fields degrade gracefully, never fatal.
-
-export type TenantId = string;
-export type TicketId = string;
-export type RoleId = string; // "forge" | "sentinel" | "vessel" | "lore" | "nexus"
-export type WorkerId = string; // e.g. "forge-1"
 
 // ── TicketStatus (terminal / escalation enum from `tickets[i].status`) ──────
 export type TicketStatus =
@@ -19,7 +14,7 @@ export type TicketStatus =
   | { type: "awaiting_human"; worker_id: string; reason?: string; attempts?: number };
 
 export interface Ticket {
-  id: TicketId;
+  id: string;
   title: string;
   body?: string;
   priority?: number;
@@ -38,7 +33,7 @@ export type WorkerStatus =
   | { type: "suspended"; ticket_id?: string; reason?: string; issue_url?: string | null };
 
 export interface WorkerSlot {
-  id: WorkerId;
+  id: string;
   status: WorkerStatus;
   workspace_id?: string | null;
 }
@@ -53,7 +48,7 @@ export type WorkflowPhase =
 
 export interface PhaseStatus {
   phase: WorkflowPhase;
-  role?: RoleId;
+  role?: string;
   ts?: number;
 }
 
@@ -67,14 +62,14 @@ export interface HeartbeatRecord {
 // ── Pending PR (CI / merge lane) ──────────────────────────────────────────
 export interface PendingPr {
   number: number;
-  ticket_id?: TicketId;
+  ticket_id?: string;
   head_sha?: string;
   head_branch?: string;
   base_branch?: string;
   title?: string;
   mergeable?: boolean;
   has_conflicts?: boolean;
-  worker_id?: WorkerId;
+  worker_id?: string;
 }
 
 // ── CI readiness ──────────────────────────────────────────────────────────
@@ -102,9 +97,9 @@ export interface MergePayload {
 
 // ── Aggregated fleet snapshot (what the dashboard renders) ────────────────
 export interface TenantFleet {
-  tenant: TenantId;
+  tenant: string;
   tickets: Ticket[];
-  workerSlots: Record<WorkerId, WorkerSlot>;
+  workerSlots: Record<string, WorkerSlot>;
   pendingPrs: PendingPr[];
   ciReadiness?: CiReadiness;
   heartbeats?: Record<string, HeartbeatRecord>;
