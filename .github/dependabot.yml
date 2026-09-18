@@ -1,0 +1,42 @@
+# Dependabot
+
+version: 2
+updates:
+  # Keep npm/pnpm dependencies up to date
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    versioning-strategy: increase
+    groups:
+      nextjs:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+      types:
+        patterns:
+          - "@types/*"
+          - "typescript"
+
+  # Keep GitHub Actions up to date
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
