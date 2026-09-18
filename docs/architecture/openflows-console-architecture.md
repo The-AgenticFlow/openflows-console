@@ -155,6 +155,14 @@ The Console is **read-mostly over Redis and write-via-CLI**:
 
 This delivers the foundation today with zero Rust changes, and leaves a clean seam to swap the write path to a future Controller HTTP API (ADR-0001, "future" note).
 
+### 3.2 Building on releases (see ADR-0005)
+
+Upstream OpenFlows is actively released. The Console therefore:
+- pins/supports specific OpenFlows releases (compatibility matrix),
+- reads Redis with **tolerant, defensive schemas** (`#[serde(default)]`, unknown-field-safe) so an upstream field addition never breaks the UI,
+- treats the CLI as the write contract, and
+- isolates all upstream coupling in the `lib/` data layer so version bumps touch one place.
+
 ## 4. UI surfaces (foundation scope)
 
 1. **Onboarding / Auth** — GitHub OAuth sign-in to the Console; free-trial; add `repo/owner` per tenant. *(Console-level auth is separate from Coder's GitHub external auth.)*
@@ -180,4 +188,5 @@ These are documented decisions in the OpenFlows architecture; the Console defers
 - `docs/adr/0002-nextjs-app-router-and-data-layer.md` — framework + data-layer structure.
 - `docs/adr/0003-github-oauth-auth-model.md` — Console auth & onboarding.
 - `docs/adr/0004-kanban-data-reconciliation.md` — reconciling the two status models.
+- `docs/adr/0005-upstream-release-coupling.md` — building on OpenFlows releases with defensive reads and a compatibility matrix.
 - OpenFlows: `docs/architecture/openflows-system-architecture.md` (§3.4–3.7), `binary/src/doctor.rs`, `crates/config/src/state.rs`, `crates/pocketflow-core/src/store.rs`.

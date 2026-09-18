@@ -10,3 +10,4 @@ Each ADR is small, dated, and immutable once accepted (superseding records are a
 | [0002](./0002-nextjs-app-router-and-data-layer.md) | Next.js App Router & data layer | Accepted |
 | [0003](./0003-github-oauth-auth-model.md) | GitHub OAuth auth model | Proposed |
 | [0004](./0004-kanban-data-reconciliation.md) | Kanban data reconciliation | Accepted |
+| [0005](./0005-upstream-release-coupling.md) | Building on upstream releases (moving-target resilience) | Accepted |
