@@ -6,8 +6,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { fetchFleet } from "@/lib/api/fleet";
-import type { Ticket } from "@/lib/domain/types";
+import type { TenantFleet, Ticket } from "@/lib/domain/types";
 
 const features = tableFeatures({});
 const helper = createColumnHelper<typeof features, Ticket>();
@@ -24,6 +23,14 @@ const columns = helper.columns([
 ]);
 
 const EMPTY_TICKETS: Ticket[] = [];
+
+async function fetchFleet(): Promise<TenantFleet[]> {
+  const res = await fetch("/api/fleet");
+  if (!res.ok) {
+    throw new Error("Failed to load fleet");
+  }
+  return res.json();
+}
 
 export function FleetOverview() {
   const { data, isLoading, isError, refetch } = useQuery({
