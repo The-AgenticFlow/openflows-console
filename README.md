@@ -14,16 +14,41 @@ OpenFlows is an autonomous AI software team that turns GitHub issues into review
 
 ## Getting Started
 
-> **Note:** This is the foundation-stage repository. Setup instructions will be added as the app is scaffolded.
-
 ### Prerequisites
 
-- Node.js 20+ and your package manager of choice (npm, pnpm, yarn)
+- Node.js 20+ and [pnpm](https://pnpm.io)
 - An OpenFlows deployment (see [openflows](https://github.com/The-AgenticFlow/openflows)) to point the console at
+
+### Install
+
+```bash
+pnpm install
+```
+
+### Run the dev server
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The app uses hot reload so edits are reflected immediately.
+
+### Build for production
+
+```bash
+pnpm build
+pnpm start
+```
+
+### Lint
+
+```bash
+pnpm lint
+```
 
 ## Technology
 
-Built with [Next.js](https://nextjs.org) and [TypeScript](https://www.typescriptlang.org), per the OpenFlows control-panel design decision.
+Built with [Next.js](https://nextjs.org) (App Router), [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), and [Tailwind CSS](https://tailwindcss.com) — always on the latest stable versions.
 
 ## Roadmap
 
