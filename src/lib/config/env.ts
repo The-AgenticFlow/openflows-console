@@ -32,7 +32,7 @@ export function validateEnv(): void {
   const missing = requiredInRealMode.filter((required) => !getEnv(required));
   if (missing.length) {
     throw new Error(
-      `Missing required environment variables for real mode:\n- ${missing.join("\n- ")}\nSet them in .env.local.`,
+      `Missing required environment variables for real mode:\n- ${missing.join("\n- ")}\nConfigure them in the deployment environment, or in .env.local for local development.`,
     );
   }
 }
