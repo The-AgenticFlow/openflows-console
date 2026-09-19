@@ -23,3 +23,11 @@ ADR-0005 defensive contract; `fleet.ts` declares its mock-vs-real data source se
 For a **new file**, write the header comment first, before any code: state what the file is for, how
 it fits the module, and any non-obvious contract or trade-off. Then keep that header accurate as the
 file grows.
+
+## Environment variables
+
+- Declare every server environment variable in `src/lib/config/env.ts`.
+- Read environment variables through `getEnv()`; do not use `process.env`
+  elsewhere in application code.
+- Document new operator-facing variables in `.env.example` and
+  `CONTRIBUTING.md`.
