@@ -1,12 +1,14 @@
 {
   "name": "openflows-console",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test --experimental-strip-types src/**/*.test.mts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

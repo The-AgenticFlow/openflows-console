@@ -2,6 +2,7 @@ import type { TenantFleet } from "@/lib/domain/types";
 
 // Bundled sample data for mock mode. Lets contributors develop without a
 // live OpenFlows deployment. Replace freely with more realistic fixtures.
+const now = Date.now();
 
 export const mockFleet: TenantFleet[] = [
   {
@@ -48,8 +49,39 @@ export const mockFleet: TenantFleet[] = [
       sentinel: { id: "sentinel", status: { type: "idle" } },
     },
     pendingPrs: [
-      { number: 42, ticket_id: "T-001", base_branch: "main", mergeable: true },
+      {
+        number: 42,
+        ticket_id: "T-001",
+        title: "Add billing webhook",
+        head_branch: "forge-1/T-001",
+        base_branch: "main",
+        mergeable: true,
+        worker_id: "forge-1",
+      },
     ],
+    heartbeats: {
+      "heartbeat:forge-T-T-002": {
+        ts: now - 35_000,
+        ws_id: "ws-forge-1",
+        status: "running",
+      },
+      "heartbeat:forge-T-T-003": {
+        ts: now - 135_000,
+        ws_id: "ws-forge-2",
+        status: "running",
+      },
+    },
     ciReadiness: "ready",
+  },
+  {
+    tenant: "globex",
+    tickets: [],
+    workerSlots: {
+      "forge-1": { id: "forge-1", status: { type: "idle" } },
+      sentinel: { id: "sentinel", status: { type: "idle" } },
+    },
+    pendingPrs: [],
+    heartbeats: {},
+    ciReadiness: "missing",
   },
 ];
