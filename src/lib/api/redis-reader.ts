@@ -7,6 +7,7 @@ import type {
   CiReadiness,
   HeartbeatRecord,
   PendingPr,
+  PhaseStatus,
   TenantFleet,
   Ticket,
   WorkerSlot,
@@ -27,17 +28,19 @@ export async function listTenants(): Promise<string[]> {
 
 export async function readTenantFleet(tenant: string): Promise<TenantFleet> {
   const r = await getRedis();
-  const [tickets, workerSlots, pendingPrs, ciRaw, heartbeats] = await Promise.all([
-    readJson<Ticket[]>(r, tenantKey(tenant, "tickets")),
+  const tickets = await readJson<Ticket[]>(r, tenantKey(tenant, "tickets"));
+  const [workerSlots, pendingPrs, ciRaw, heartbeats, phases] = await Promise.all([
     readJson<Record<string, WorkerSlot>>(r, tenantKey(tenant, "worker_slots")),
     readJson<PendingPr[]>(r, tenantKey(tenant, "pending_prs")),
     readJson<{ type?: string }>(r, tenantKey(tenant, "ci_readiness")),
     readHeartbeats(r, tenant),
+    readPhases(r, tenant, tickets ?? []),
   ]);
 
   return {
     tenant,
     tickets: tickets ?? [],
+    phases,
     workerSlots: workerSlots ?? {},
     pendingPrs: pendingPrs ?? [],
     ciReadiness: ciRaw?.type as CiReadiness | undefined,
@@ -70,5 +73,28 @@ async function readHeartbeats(
 
   return Object.fromEntries(
     pairs.filter((pair): pair is readonly [string, HeartbeatRecord] => pair[1] !== null),
+  );
+}
+
+// Reads the fine-grained phase object for each ticket (`ticket:{id}:status`).
+// Missing/unparseable phases degrade to empty (ADR-0005); the Kanban then
+// falls back to `Ticket.status` (ADR-0004).
+async function readPhases(
+  r: RedisClientType,
+  tenant: string,
+  tickets: Ticket[],
+): Promise<Record<string, PhaseStatus>> {
+  const entries = await Promise.all(
+    tickets.map(async (ticket) => {
+      const record = await readJson<PhaseStatus>(
+        r,
+        tenantKey(tenant, `ticket:${ticket.id}:status`),
+      );
+      return [ticket.id, record] as const;
+    }),
+  );
+
+  return Object.fromEntries(
+    entries.filter((entry): entry is readonly [string, PhaseStatus] => entry[1] !== null),
   );
 }

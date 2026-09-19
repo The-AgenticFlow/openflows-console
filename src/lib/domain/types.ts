@@ -99,6 +99,10 @@ export interface MergePayload {
 export interface TenantFleet {
   tenant: string;
   tickets: Ticket[];
+  // Fine-grained phase per ticket (`ticket:{id}:status`), keyed by ticket id.
+  // Optional per ADR-0005: upstream may not publish a phase for every ticket,
+  // in which case the Kanban falls back to `Ticket.status` (ADR-0004).
+  phases?: Record<string, PhaseStatus>;
   workerSlots: Record<string, WorkerSlot>;
   pendingPrs: PendingPr[];
   ciReadiness?: CiReadiness;
