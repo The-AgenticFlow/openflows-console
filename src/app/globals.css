@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
+/*
+ * Dark theme (default). Near-black zinc surfaces, sky accent, and
+ * content/border roles expressed as HSL triplets.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* backgrounds */
+  --background: 240 10% 4%; /* zinc-950 app background */
+  --surface: 240 6% 10%; /* zinc-900 paper / cards */
+  --surface-muted: 240 4% 16%; /* inset / hover surface */
+
+  /* text (content) */
+  --foreground: 0 0% 98%; /* content-primary */
+  --muted: 240 5% 65%; /* content-secondary */
+  --link: 213 94% 68%; /* content-link (dark) */
+  --disabled: 240 5% 26%; /* content-disabled */
+
+  /* borders */
+  --border: 240 4% 16%; /* border-default */
+  --border-strong: 240 5% 26%; /* border-secondary */
+
+  /* accent (sky, matching Coder primary) */
+  --primary: 199 89% 48%; /* sky-500 */
+  --primary-strong: 198 93% 60%; /* sky-400 hover */
+  --accent: 198 93% 60%; /* sky-400 */
+
+  /* status */
+  --success: 160 84% 39%; /* green-600 */
+  --warning: 32 95% 44%; /* amber-600 */
+  --danger: 0 91% 71%; /* content-destructive (dark) */
+
+  /* controls */
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: hsl(var(--background));
+  --color-surface: hsl(var(--surface));
+  --color-surface-muted: hsl(var(--surface-muted));
+  --color-foreground: hsl(var(--foreground));
+  --color-muted: hsl(var(--muted));
+  --color-link: hsl(var(--link));
+  --color-disabled: hsl(var(--disabled));
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-primary: hsl(var(--primary));
+  --color-primary-strong: hsl(var(--primary-strong));
+  --color-accent: hsl(var(--accent));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-danger: hsl(var(--danger));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
 }

@@ -40,7 +40,7 @@ The OpenFlows architecture docs describe a web UI / control panel / `openflows-d
 The Console dashboard/Kanban reads durable, tenant-namespaced Redis keys (`ns:{tenant}:{key}`):
 
 | Logical key | Type | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `tickets` | `Vec<Ticket>` | ingested GitHub issues + `TicketStatus` |
 | `worker_slots` | `HashMap<String, WorkerSlot>` | per-role/slot availability + workspace id |
 | `ticket:{id}:status` | `{phase, role, ts}` | fine-grained phase machine |
@@ -55,6 +55,7 @@ The Console dashboard/Kanban reads durable, tenant-namespaced Redis keys (`ns:{t
 | `registry_json` | `String` | (planned) live fleet registry |
 
 Two parallel status models must be **reconciled** in the UI:
+
 - `Ticket.status` — terminal/escalation enum: `open | assigned | in_progress | merged | failed | completed | exhausted | awaiting_human`.
 - `ticket:{id}:status.phase` — workflow phase: `planning | building | testing | review_ready | blocked`.
 
@@ -65,7 +66,7 @@ Two parallel status models must be **reconciled** in the UI:
 `binary/src/doctor.rs` performs exactly five checks:
 
 | Check | Probe | Hard fail? |
-|---|---|---|
+| --- | --- | --- |
 | Coder reachable | `GET {CODER_URL}/api/v2/buildinfo` | yes |
 | Coder image tag | env read + semver comparison | no (warn on drift) |
 | LLM models configured | `GET /api/v2/organizations` → `GET /api/v2/organizations/{org}/chats/models` | no (warn) |
@@ -115,7 +116,7 @@ flowchart LR
   CDR --> CODER
 ```
 
-```
+```text
                  ┌──────────────────────────────────────────────────┐
    Operator ───▶ │                 OPENFLOWS CONSOLE                │
    (browser)     │             Next.js (App Router, TS)             │
@@ -158,6 +159,7 @@ This delivers the foundation today with zero Rust changes, and leaves a clean se
 ### 3.2 Building on releases (see ADR-0005)
 
 Upstream OpenFlows is actively released. The Console therefore:
+
 - pins/supports specific OpenFlows releases (compatibility matrix),
 - reads Redis with **tolerant, defensive schemas** (`#[serde(default)]`, unknown-field-safe) so an upstream field addition never breaks the UI,
 - treats the CLI as the write contract, and

@@ -1,3 +1,6 @@
+// FleetOverview: dashboard table of the fleet's tickets (ID / title / priority /
+// status). Client component that polls /api/fleet via TanStack Query every 15s
+// and renders the data with TanStack Table v9.
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -6,8 +9,8 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { fetchFleet } from "@/lib/api/fleet";
-import type { Ticket } from "@/lib/domain/types";
+
+import type { TenantFleet, Ticket } from "@/lib/domain/types";
 
 const features = tableFeatures({});
 const helper = createColumnHelper<typeof features, Ticket>();
@@ -25,6 +28,14 @@ const columns = helper.columns([
 
 const EMPTY_TICKETS: Ticket[] = [];
 
+async function fetchFleet(): Promise<TenantFleet[]> {
+  const res = await fetch("/api/fleet");
+  if (!res.ok) {
+    throw new Error("Failed to load fleet");
+  }
+  return res.json();
+}
+
 export function FleetOverview() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["fleet"],
@@ -41,15 +52,16 @@ export function FleetOverview() {
   });
 
   if (isLoading)
-    return <p className="p-6 text-sm text-zinc-500">Loading fleet…</p>;
+    return <p className="p-6 text-sm text-muted">Loading fleet…</p>;
 
   if (isError)
     return (
-      <div className="p-6">
-        <p className="text-sm text-red-600">Failed to load fleet.</p>
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <p className="text-sm text-danger">Failed to load fleet.</p>
         <button
+          type="button"
           onClick={() => refetch()}
-          className="mt-2 text-sm text-blue-600 underline"
+          className="mt-2 text-sm text-primary underline"
         >
           Retry
         </button>
@@ -57,20 +69,21 @@ export function FleetOverview() {
     );
 
   return (
-    <div className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-zinc-900">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <h2 className="text-base font-semibold text-foreground">
           Fleet · {fleet?.tenant}
         </h2>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-muted">
           CI: {fleet?.ciReadiness ?? "unknown"} · workers:{" "}
           {Object.keys(fleet?.workerSlots ?? {}).length}
         </span>
       </div>
-      <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto px-6 py-4">
+        <table className="w-full border-collapse text-sm">
         <thead>
           {table.getHeaderGroups().map((group) => (
-            <tr key={group.id} className="border-b text-left text-zinc-500">
+            <tr key={group.id} className="border-b text-left text-muted">
               {group.headers.map((header) => (
                 <th key={header.id} className="px-3 py-2 font-medium">
                   {header.isPlaceholder ? null : (
@@ -92,7 +105,8 @@ export function FleetOverview() {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

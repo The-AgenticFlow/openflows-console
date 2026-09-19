@@ -1,3 +1,5 @@
+// Providers: app-wide TanStack Query client + devtools. Centralises the shared
+// query defaults (staleTime, retry, focus refetch) used across all data hooks.
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +14,7 @@ const defaultOptions = {
   },
 };
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: Readonly<{ children: React.ReactNode }>) {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions }));
 
   return (

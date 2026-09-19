@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a new feature or enhancement for the OpenFlows Console
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the feature and why it matters. Tie it to an operator need where possible.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What operator problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should be built?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you explored and why they were not chosen.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checkboxes / concrete, testable outcomes.
+  - type: textarea
+    id: source
+    attributes:
+      label: Source of truth
+      description: Reference URL or issue number underpinning this request.
+  - type: markdown
+    attributes:
+      value: "## AI usage declaration"
+  - type: dropdown
+    id: ai
+    attributes:
+      label: Was AI used to draft this request?
+      options:
+        - "No"
+        - "Yes (described below)"
+    validations:
+      required: true
+  - type: textarea
+    id: ai_details
+    attributes:
+      label: If yes, what did AI do and what did you verify?

@@ -1,0 +1,56 @@
+name: Dev ticket
+description: A scoped implementation task (used for the phased roadmap)
+title: "T-XX: "
+labels: ["foundation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A concrete, bounded task from the roadmap. Reference the related ADR/architecture doc.
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      description: e.g. Data layer, Dashboard, Kanban, Tenants, Auth
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Background and the relevant ADR / architecture reference (e.g. ADR-0002).
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: Task
+      description: What to implement.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Concrete, testable completion criteria (checkboxes).
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification evidence
+      description: Commands/logs expected (e.g. `pnpm lint`, `pnpm typecheck`, `pnpm build` pass).
+  - type: markdown
+    attributes:
+      value: "## AI usage declaration"
+  - type: dropdown
+    id: ai
+    attributes:
+      label: Was AI used to draft this ticket?
+      options:
+        - "No"
+        - "Yes (described below)"
+    validations:
+      required: true
+  - type: textarea
+    id: ai_details
+    attributes:
+      label: If yes, what did AI do and what did you verify?
