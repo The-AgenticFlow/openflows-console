@@ -63,13 +63,25 @@ Key conventions:
 
 ### Mock/fixture mode
 
-By default the app uses a bundled mock data source so you can develop without infrastructure. To switch to the (future) real data source, set:
+By default the app uses bundled mock data, so no environment variables or
+infrastructure are required. For a real OpenFlows deployment, create your local
+configuration:
 
 ```bash
-OPENFLOWS_DATA_SOURCE=real
+cp .env.example .env.local
 ```
 
-Copy `.env.example` to `.env.local` and fill in the variables once the real integration lands (T2+).
+Set `OPENFLOWS_DATA_SOURCE=real` and provide all four connection values:
+
+| Variable | Purpose |
+| --- | --- |
+| `REDIS_URL` | OpenFlows Redis connection URL |
+| `OPENFLOWS_TENANT` | OpenFlows tenant identifier |
+| `CODER_URL` | Coder deployment URL |
+| `CODER_SESSION_TOKEN` | Coder API session token |
+
+Startup fails with a list of any missing real-mode variables. Never commit
+`.env.local` or real credentials.
 
 ## Quality gates
 

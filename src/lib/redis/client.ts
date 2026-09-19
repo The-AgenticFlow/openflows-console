@@ -2,10 +2,12 @@
 // helpers for the tenant-namespaced key scheme (`ns:<tenant>:<key>`).
 import { createClient, type RedisClientType } from "redis";
 
+import { getEnv } from "@/lib/config/env";
+
 let client: RedisClientType | null = null;
 
 export function redisUrl(): string {
-  const url = process.env.REDIS_URL;
+  const url = getEnv("REDIS_URL");
   if (!url) {
     throw new Error(
       "REDIS_URL is not set. Set it to read live OpenFlows state, or keep OPENFLOWS_DATA_SOURCE=mock for development.",
