@@ -5,6 +5,7 @@ import type { RedisClientType } from "redis";
 
 import type {
   CiReadiness,
+  HeartbeatRecord,
   PendingPr,
   TenantFleet,
   Ticket,
@@ -26,11 +27,12 @@ export async function listTenants(): Promise<string[]> {
 
 export async function readTenantFleet(tenant: string): Promise<TenantFleet> {
   const r = await getRedis();
-  const [tickets, workerSlots, pendingPrs, ciRaw] = await Promise.all([
+  const [tickets, workerSlots, pendingPrs, ciRaw, heartbeats] = await Promise.all([
     readJson<Ticket[]>(r, tenantKey(tenant, "tickets")),
     readJson<Record<string, WorkerSlot>>(r, tenantKey(tenant, "worker_slots")),
     readJson<PendingPr[]>(r, tenantKey(tenant, "pending_prs")),
     readJson<{ type?: string }>(r, tenantKey(tenant, "ci_readiness")),
+    readHeartbeats(r, tenant),
   ]);
 
   return {
@@ -39,6 +41,7 @@ export async function readTenantFleet(tenant: string): Promise<TenantFleet> {
     workerSlots: workerSlots ?? {},
     pendingPrs: pendingPrs ?? [],
     ciReadiness: ciRaw?.type as CiReadiness | undefined,
+    heartbeats,
   };
 }
 
@@ -50,4 +53,22 @@ async function readJson<T>(r: RedisClientType, key: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+async function readHeartbeats(
+  r: RedisClientType,
+  tenant: string,
+): Promise<Record<string, HeartbeatRecord>> {
+  const prefix = `ns:${tenant}:`;
+  const keys = await r.keys(tenantKey(tenant, "heartbeat:*"));
+  const pairs = await Promise.all(
+    keys.map(async (key) => {
+      const record = await readJson<HeartbeatRecord>(r, key);
+      return [key.startsWith(prefix) ? key.slice(prefix.length) : key, record] as const;
+    }),
+  );
+
+  return Object.fromEntries(
+    pairs.filter((pair): pair is readonly [string, HeartbeatRecord] => pair[1] !== null),
+  );
 }
