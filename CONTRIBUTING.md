@@ -73,12 +73,10 @@ cp .env.example .env.local
 
 Set `OPENFLOWS_DATA_SOURCE=real` and provide all four connection values:
 
-| Variable | Purpose |
-| --- | --- |
-| `REDIS_URL` | OpenFlows Redis connection URL |
-| `OPENFLOWS_TENANT` | OpenFlows tenant identifier |
-| `CODER_URL` | Coder deployment URL |
-| `CODER_SESSION_TOKEN` | Coder API session token |
+- `REDIS_URL`
+- `OPENFLOWS_TENANT`
+- `CODER_URL`
+- `CODER_SESSION_TOKEN`
 
 Startup fails with a list of any missing real-mode variables. Never commit
 `.env.local` or real credentials.
