@@ -77,8 +77,9 @@ async function readHeartbeats(
 }
 
 // Reads the fine-grained phase object for each ticket (`ticket:{id}:status`).
-// Missing/unparseable phases degrade to empty (ADR-0005); the Kanban then
-// falls back to `Ticket.status` (ADR-0004).
+// Missing, unparseable, or malformed phases degrade to empty (ADR-0005); the
+// Kanban then falls back to `Ticket.status` (ADR-0004). We validate the shape
+// so a stray value upstream (e.g. a plain string) can never surface as a phase.
 async function readPhases(
   r: RedisClientType,
   tenant: string,
@@ -86,15 +87,27 @@ async function readPhases(
 ): Promise<Record<string, PhaseStatus>> {
   const entries = await Promise.all(
     tickets.map(async (ticket) => {
-      const record = await readJson<PhaseStatus>(
-        r,
-        tenantKey(tenant, `ticket:${ticket.id}:status`),
-      );
-      return [ticket.id, record] as const;
+      const raw = await r.get(tenantKey(tenant, `ticket:${ticket.id}:status`));
+      if (!raw) return [ticket.id, null] as const;
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        return [ticket.id, isPhaseStatus(parsed) ? parsed : null] as const;
+      } catch {
+        return [ticket.id, null] as const;
+      }
     }),
   );
 
   return Object.fromEntries(
     entries.filter((entry): entry is readonly [string, PhaseStatus] => entry[1] !== null),
   );
+}
+
+// The phase values the harness writes (crates/config/src/state.rs).
+const VALID_PHASES = new Set(["planning", "building", "testing", "review_ready", "blocked"]);
+
+function isPhaseStatus(value: unknown): value is PhaseStatus {
+  if (typeof value !== "object" || value === null) return false;
+  const phase = (value as { phase?: unknown }).phase;
+  return typeof phase === "string" && VALID_PHASES.has(phase);
 }
