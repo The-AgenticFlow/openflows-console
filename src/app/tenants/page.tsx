@@ -1,3 +1,4 @@
+import { AddTenantForm } from "@/components/add-tenant-form";
 import { PageHeader } from "@/components/page-header";
 import { TenantList } from "@/components/tenant-list";
 
@@ -11,6 +12,9 @@ export default function TenantsPage() {
         title="Tenants"
         description="Manage your multi-tenant workspaces and their resources."
       />
+      <div className="mb-6">
+        <AddTenantForm />
+      </div>
       <TenantList />
     </div>
   );
