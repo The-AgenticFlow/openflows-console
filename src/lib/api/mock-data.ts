@@ -37,6 +37,10 @@ export const mockFleet: TenantFleet[] = [
         status: { type: "open" },
       },
     ],
+    phases: {
+      "T-002": { phase: "building", role: "forge-1" },
+      "T-003": { phase: "review_ready", role: "forge-2" },
+    },
     workerSlots: {
       "forge-1": {
         id: "forge-1",

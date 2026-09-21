@@ -1,5 +1,6 @@
 // Kanban route: task board tracking tickets through their workflow phases.
-// Placeholder for now — the live board is not implemented yet.
+// Renders the ADR-0004 columns via the data-layer reconciliation (buildBoard).
+import { KanbanBoard } from "@/components/kanban-board";
 import { PageHeader } from "@/components/page-header";
 
 export default function KanbanPage() {
@@ -9,9 +10,7 @@ export default function KanbanPage() {
         title="Kanban"
         description="Track tasks across implementation → progress → review → done → merge."
       />
-      <div className="rounded-lg border border-dashed border-border bg-surface p-12 text-center text-sm text-muted">
-        The task Kanban board is coming soon.
-      </div>
+      <KanbanBoard />
     </div>
   );
 }
