@@ -4,6 +4,7 @@ export interface EnvSchema {
   REDIS_URL: string;
   OPENFLOWS_TENANT: string;
   OPENFLOWS_DATA_SOURCE: "mock" | "real";
+  OPENFLOWS_CLI_PATH: string;
 }
 
 type EnvName = keyof EnvSchema;
