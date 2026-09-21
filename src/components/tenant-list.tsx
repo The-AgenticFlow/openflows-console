@@ -6,6 +6,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
+import { TenantActions } from "@/components/tenant-actions";
 import { summarizeTenants, type TenantSummary } from "@/lib/domain/tenant-summary";
 import type { TenantFleet } from "@/lib/domain/types";
 
@@ -138,6 +139,8 @@ function TenantCard({ summary }: Readonly<{ summary: TenantSummary }>) {
         <MiniMetric label="Pending PRs" value={summary.pendingPrCount} />
         <MiniMetric label="Workers" value={summary.workerCount} />
       </div>
+
+      <TenantActions tenant={summary.name} />
     </section>
   );
 }

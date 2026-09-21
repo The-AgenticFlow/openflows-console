@@ -5,6 +5,9 @@ import test from "node:test";
 
 import {
   buildTenantAddArgs,
+  buildTenantCleanArgs,
+  buildTenantRemoveArgs,
+  normalizeTenantActionInput,
   normalizeTenantAddInput,
 } from "./tenant-add.ts";
 
@@ -64,5 +67,33 @@ test("buildTenantAddArgs leaves --name off when the operator accepts the upstrea
     "tenant",
     "add",
     "The-AgenticFlow/openflows-console",
+  ]);
+});
+
+test("normalizeTenantActionInput accepts only the intended OpenFlows-safe tenant", () => {
+  assert.deepEqual(normalizeTenantActionInput({ tenant: "trial_01.alpha-beta" }), {
+    tenant: "trial_01.alpha-beta",
+  });
+
+  assert.throws(
+    () => normalizeTenantActionInput({ tenant: "trial tenant" }),
+    /ASCII letters, numbers, '.', '_' and '-'/,
+  );
+});
+
+test("buildTenantCleanArgs maps directly to upstream tenant clean", () => {
+  assert.deepEqual(buildTenantCleanArgs({ tenant: "trial_01" }), [
+    "tenant",
+    "clean",
+    "trial_01",
+  ]);
+});
+
+test("buildTenantRemoveArgs always purges the intended tenant keyspace", () => {
+  assert.deepEqual(buildTenantRemoveArgs({ tenant: "trial_01" }), [
+    "tenant",
+    "remove",
+    "trial_01",
+    "--purge",
   ]);
 });

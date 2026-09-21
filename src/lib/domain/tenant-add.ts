@@ -8,6 +8,10 @@ export interface NormalizedTenantAddInput {
   name?: string;
 }
 
+export interface TenantActionInput {
+  tenant: string;
+}
+
 const REPO_PART_PATTERN = /^[A-Za-z0-9_.-]+$/;
 const TENANT_NAME_PATTERN = /^[A-Za-z0-9_.-]+$/;
 
@@ -34,6 +38,20 @@ export function buildTenantAddArgs(input: NormalizedTenantAddInput): string[] {
     args.push("--name", input.name);
   }
   return args;
+}
+
+export function normalizeTenantActionInput(input: TenantActionInput): TenantActionInput {
+  const tenant = input.tenant.trim();
+  validateTenantName(tenant);
+  return { tenant };
+}
+
+export function buildTenantCleanArgs(input: TenantActionInput): string[] {
+  return ["tenant", "clean", input.tenant];
+}
+
+export function buildTenantRemoveArgs(input: TenantActionInput): string[] {
+  return ["tenant", "remove", input.tenant, "--purge"];
 }
 
 export function validateTenantName(name: string): void {
