@@ -4,6 +4,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 import {
   type FleetSummary,
@@ -249,9 +250,12 @@ function TicketRow({
           <span className="text-xs text-muted">{tenant}</span>
           <StatusBadge status={ticket.status.type} />
         </div>
-        <div className="mt-1 truncate text-sm font-medium text-foreground">
+        <Link
+          href={ticketHref(tenant, ticket.id)}
+          className="mt-1 block truncate text-sm font-medium text-foreground transition-colors hover:text-primary"
+        >
           {ticket.title}
-        </div>
+        </Link>
         {"reason" in ticket.status && ticket.status.reason ? (
           <div className="mt-1 text-xs text-danger">{ticket.status.reason}</div>
         ) : null}
@@ -263,6 +267,10 @@ function TicketRow({
       ) : null}
     </div>
   );
+}
+
+function ticketHref(tenant: string, ticketId: string): string {
+  return `/tickets/${encodeURIComponent(tenant)}/${encodeURIComponent(ticketId)}`;
 }
 
 function WorkerList({ workers }: Readonly<{ workers: WorkerSlot[] }>) {

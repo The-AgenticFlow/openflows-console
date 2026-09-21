@@ -95,6 +95,28 @@ export interface MergePayload {
   merged?: boolean;
 }
 
+export interface TicketGateRecord {
+  phase: WorkflowPhase;
+  payload: unknown;
+}
+
+export interface TicketReviewRecord {
+  role: string;
+  payload: unknown;
+}
+
+export interface TicketDetail {
+  tenant: string;
+  ticket: Ticket;
+  phase?: PhaseStatus;
+  gates: TicketGateRecord[];
+  reviews: TicketReviewRecord[];
+  pr?: unknown;
+  handoff?: unknown;
+  deployment?: unknown;
+  pendingPr?: PendingPr;
+}
+
 // ── Aggregated fleet snapshot (what the dashboard renders) ────────────────
 export interface TenantFleet {
   tenant: string;
