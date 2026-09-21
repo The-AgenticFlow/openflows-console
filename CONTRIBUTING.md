@@ -71,12 +71,10 @@ configuration:
 cp .env.example .env.local
 ```
 
-Set `OPENFLOWS_DATA_SOURCE=real` and provide all four connection values:
+Set `OPENFLOWS_DATA_SOURCE=real` and provide the connection values:
 
 - `REDIS_URL`
 - `OPENFLOWS_TENANT`
-- `CODER_URL`
-- `CODER_SESSION_TOKEN`
 
 Startup fails with a list of any missing real-mode variables. Never commit
 `.env.local` or real credentials.
