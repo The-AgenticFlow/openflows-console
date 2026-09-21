@@ -1,6 +1,8 @@
-// Tenants route: manage multi-tenant workspaces and their resources.
-// Placeholder for now — tenant management is not implemented yet.
 import { PageHeader } from "@/components/page-header";
+import { TenantList } from "@/components/tenant-list";
+
+// Tenants route: lists OpenFlows tenants discovered by the data layer. Mutating
+// tenant management actions are handled by later CLI-bridge issues.
 
 export default function TenantsPage() {
   return (
@@ -9,9 +11,7 @@ export default function TenantsPage() {
         title="Tenants"
         description="Manage your multi-tenant workspaces and their resources."
       />
-      <div className="rounded-lg border border-dashed border-border bg-surface p-12 text-center text-sm text-muted">
-        Tenant management is coming soon.
-      </div>
+      <TenantList />
     </div>
   );
 }
