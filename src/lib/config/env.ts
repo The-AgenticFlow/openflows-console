@@ -3,19 +3,12 @@
 export interface EnvSchema {
   REDIS_URL: string;
   OPENFLOWS_TENANT: string;
-  CODER_URL: string;
-  CODER_SESSION_TOKEN: string;
   OPENFLOWS_DATA_SOURCE: "mock" | "real";
 }
 
 type EnvName = keyof EnvSchema;
 
-const requiredInRealMode: EnvName[] = [
-  "REDIS_URL",
-  "OPENFLOWS_TENANT",
-  "CODER_URL",
-  "CODER_SESSION_TOKEN",
-];
+const requiredInRealMode: EnvName[] = ["REDIS_URL", "OPENFLOWS_TENANT"];
 
 export function getEnv<Name extends EnvName>(name: Name): EnvSchema[Name] | undefined {
   const dataSource = process.env.OPENFLOWS_DATA_SOURCE;
