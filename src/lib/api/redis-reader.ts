@@ -10,7 +10,11 @@ import type {
   PhaseStatus,
   TenantFleet,
   Ticket,
+  TicketDetail,
+  TicketGateRecord,
+  TicketReviewRecord,
   WorkerSlot,
+  WorkflowPhase,
 } from "@/lib/domain/types";
 import { getRedis, tenantKey } from "@/lib/redis/client";
 
@@ -45,6 +49,36 @@ export async function readTenantFleet(tenant: string): Promise<TenantFleet> {
     pendingPrs: pendingPrs ?? [],
     ciReadiness: ciRaw?.type as CiReadiness | undefined,
     heartbeats,
+  };
+}
+
+export async function readTenantTicketDetail(
+  tenant: string,
+  ticketId: string,
+): Promise<TicketDetail | null> {
+  const r = await getRedis();
+  const fleet = await readTenantFleet(tenant);
+  const ticket = fleet.tickets.find((item) => item.id === ticketId);
+  if (!ticket) return null;
+
+  const [gates, reviews, pr, handoff, deployment] = await Promise.all([
+    readGateRecords(r, tenant, ticketId),
+    readReviewRecords(r, tenant, ticketId),
+    readJson<unknown>(r, tenantKey(tenant, `ticket:${ticketId}:pr`)),
+    readJson<unknown>(r, tenantKey(tenant, `ticket:${ticketId}:handoff`)),
+    readJson<unknown>(r, tenantKey(tenant, `ticket:${ticketId}:deployment`)),
+  ]);
+
+  return {
+    tenant,
+    ticket,
+    phase: fleet.phases?.[ticketId],
+    gates,
+    reviews,
+    pr: pr ?? undefined,
+    handoff: handoff ?? undefined,
+    deployment: deployment ?? undefined,
+    pendingPr: fleet.pendingPrs.find((pending) => pending.ticket_id === ticketId),
   };
 }
 
@@ -110,4 +144,51 @@ function isPhaseStatus(value: unknown): value is PhaseStatus {
   if (typeof value !== "object" || value === null) return false;
   const phase = (value as { phase?: unknown }).phase;
   return typeof phase === "string" && VALID_PHASES.has(phase);
+}
+
+const GATE_PHASES: WorkflowPhase[] = [
+  "planning",
+  "building",
+  "testing",
+  "review_ready",
+  "blocked",
+];
+
+async function readGateRecords(
+  r: RedisClientType,
+  tenant: string,
+  ticketId: string,
+): Promise<TicketGateRecord[]> {
+  const entries: Array<TicketGateRecord | null> = await Promise.all(
+    GATE_PHASES.map(async (phase) => {
+      const payload = await readJson<unknown>(
+        r,
+        tenantKey(tenant, `ticket:${ticketId}:gate:${phase}`),
+      );
+      return payload ? { phase, payload } : null;
+    }),
+  );
+
+  return entries.filter((entry): entry is TicketGateRecord => entry !== null);
+}
+
+async function readReviewRecords(
+  r: RedisClientType,
+  tenant: string,
+  ticketId: string,
+): Promise<TicketReviewRecord[]> {
+  const prefix = `ns:${tenant}:ticket:${ticketId}:review:`;
+  const keys = await r.keys(tenantKey(tenant, `ticket:${ticketId}:review:*`));
+  const entries: Array<TicketReviewRecord | null> = await Promise.all(
+    keys.map(async (key) => {
+      const payload = await readJson<unknown>(r, key);
+      if (!payload) return null;
+      return {
+        role: key.startsWith(prefix) ? key.slice(prefix.length) : key.split(":").at(-1) ?? "unknown",
+        payload,
+      };
+    }),
+  );
+
+  return entries.filter((entry): entry is TicketReviewRecord => entry !== null);
 }
