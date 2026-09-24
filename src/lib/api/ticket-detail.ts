@@ -4,18 +4,22 @@ import { readTenantTicketDetail } from "@/lib/api/redis-reader";
 import { getEnv } from "@/lib/config/env";
 import type { TenantFleet, TicketDetail } from "@/lib/domain/types";
 
-const DATA_SOURCE = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
-
 export async function fetchTicketDetail(
   tenant: string,
   ticketId: string,
 ): Promise<TicketDetail | null> {
-  if (DATA_SOURCE === "manager") {
+  const dataSource = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
+
+  if (dataSource === "manager") {
     return fetchManagerTicketDetail(tenant, ticketId);
   }
 
-  if (DATA_SOURCE === "real") {
-    return readTenantTicketDetail(tenant, ticketId);
+  if (dataSource === "real") {
+    try {
+      return await fetchManagerTicketDetail(tenant, ticketId);
+    } catch {
+      return readTenantTicketDetail(tenant, ticketId);
+    }
   }
 
   await new Promise((resolve) => setTimeout(resolve, 150));

@@ -10,16 +10,20 @@ import type { TenantFleet } from "@/lib/domain/types";
 // - "manager": queries the central OpenFlows Manager HTTP service (/api/v1).
 // Defensive: missing/unparseable keys degrade to empty values, and unknown
 // upstream fields are ignored (never fatal).
-const DATA_SOURCE = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
-
 export async function fetchFleet(): Promise<TenantFleet[]> {
-  if (DATA_SOURCE === "manager") {
+  const dataSource = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
+
+  if (dataSource === "manager") {
     return fetchManagerFleet();
   }
 
-  if (DATA_SOURCE === "real") {
-    const tenants = await listTenants();
-    return Promise.all(tenants.map((tenant) => readTenantFleet(tenant)));
+  if (dataSource === "real") {
+    try {
+      return await fetchManagerFleet();
+    } catch {
+      const tenants = await listTenants();
+      return Promise.all(tenants.map((tenant) => readTenantFleet(tenant)));
+    }
   }
 
   await new Promise((resolve) => setTimeout(resolve, 400));

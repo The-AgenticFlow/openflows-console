@@ -3,9 +3,14 @@
 import { NextResponse } from "next/server";
 
 import {
+  cleanManagerTenant,
+  removeManagerTenant,
+} from "@/lib/api/manager-client";
+import {
   cleanTenantWithOpenFlowsCli,
   removeTenantWithOpenFlowsCli,
 } from "@/lib/cli/openflows";
+import { getEnv } from "@/lib/config/env";
 import { type TenantActionInput, TenantAddValidationError } from "@/lib/domain/tenant-add";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +21,16 @@ export async function POST(request: Request) {
   try {
     const payload = await readJson(request);
     const { action, input } = readTenantActionPayload(payload);
+    const dataSource = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
+
+    if (dataSource === "manager" || dataSource === "real") {
+      const result =
+        action === "clean"
+          ? await cleanManagerTenant(input.tenant)
+          : await removeManagerTenant(input.tenant, true);
+      return NextResponse.json(result, { status: result.ok ? 200 : 502 });
+    }
+
     const result =
       action === "clean"
         ? await cleanTenantWithOpenFlowsCli(input)

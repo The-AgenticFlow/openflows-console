@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const input = readTenantAddPayload(await readJson(request));
     const dataSource = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
 
-    if (dataSource === "manager") {
+    if (dataSource === "manager" || dataSource === "real") {
       const result = await createManagerTenant(input);
       return NextResponse.json(result, { status: result.ok ? 200 : 502 });
     }

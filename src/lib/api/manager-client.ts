@@ -171,6 +171,73 @@ export async function createManagerTenant(input: {
   };
 }
 
+export async function cleanManagerTenant(
+  tenant: string,
+  resetAll = false,
+): Promise<{
+  ok: boolean;
+  message: string;
+  reset_tickets_count?: number;
+}> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/tenants/${encodeURIComponent(tenant)}/clean`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ reset_all: resetAll }),
+  });
+
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    return {
+      ok: false,
+      message: errBody?.error?.message ?? `Manager clean tenant failed with status ${res.status}`,
+    };
+  }
+
+  const data = (await res.json()) as { message?: string; reset_tickets_count?: number };
+  return {
+    ok: true,
+    message: data.message ?? `Tenant '${tenant}' cleaned successfully`,
+    reset_tickets_count: data.reset_tickets_count,
+  };
+}
+
+export async function removeManagerTenant(
+  tenant: string,
+  purge = true,
+): Promise<{
+  ok: boolean;
+  message: string;
+  purged_keys_count?: number;
+}> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(
+    `${base}/api/v1/tenants/${encodeURIComponent(tenant)}?purge=${purge ? "true" : "false"}`,
+    {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    return {
+      ok: false,
+      message: errBody?.error?.message ?? `Manager remove tenant failed with status ${res.status}`,
+    };
+  }
+
+  const data = (await res.json()) as { message?: string; purged_keys_count?: number };
+  return {
+    ok: true,
+    message: data.message ?? `Tenant '${tenant}' removed successfully`,
+    purged_keys_count: data.purged_keys_count,
+  };
+}
+
 // ── AI Providers ──────────────────────────────────────────────────────────
 export async function fetchAiProviders(): Promise<AiProviderSummary[]> {
   const base = getManagerBaseUrl();

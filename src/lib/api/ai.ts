@@ -34,6 +34,11 @@ function getDataSource(): string {
   return getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
 }
 
+function isLive(): boolean {
+  const ds = getDataSource();
+  return ds === "manager" || ds === "real";
+}
+
 // In-memory mock stores for local development
 let localProviders: AiProviderSummary[] = [...mockAiProviders];
 let localModels: AiModelSummary[] = [...mockAiModels];
@@ -43,7 +48,7 @@ const localTenantPolicies: Record<string, ModelPolicy> = {};
 // ── Providers ─────────────────────────────────────────────────────────────
 
 export async function fetchAiProviders(): Promise<AiProviderSummary[]> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerFetchAiProviders();
   }
   return localProviders;
@@ -52,7 +57,7 @@ export async function fetchAiProviders(): Promise<AiProviderSummary[]> {
 export async function createAiProvider(
   input: AiProviderCreateInput,
 ): Promise<AiProviderSummary> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerCreateAiProvider(input);
   }
   const id = `prov-${Date.now()}`;
@@ -76,7 +81,7 @@ export async function updateAiProvider(
   id: string,
   input: AiProviderUpdateInput,
 ): Promise<AiProviderSummary> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerUpdateAiProvider(id, input);
   }
   const p = localProviders.find((x) => x.id === id);
@@ -90,7 +95,7 @@ export async function updateAiProvider(
 }
 
 export async function deleteAiProvider(id: string): Promise<void> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerDeleteAiProvider(id);
   }
   localProviders = localProviders.filter((x) => x.id !== id);
@@ -99,14 +104,14 @@ export async function deleteAiProvider(id: string): Promise<void> {
 // ── Models ────────────────────────────────────────────────────────────────
 
 export async function fetchAiModels(): Promise<AiModelSummary[]> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerFetchAiModels();
   }
   return localModels;
 }
 
 export async function createAiModel(input: AiModelCreateInput): Promise<AiModelSummary> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerCreateAiModel(input);
   }
   const id = `model-${Date.now()}`;
@@ -136,7 +141,7 @@ export async function updateAiModel(
   id: string,
   input: AiModelUpdateInput,
 ): Promise<AiModelSummary> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerUpdateAiModel(id, input);
   }
   const m = localModels.find((x) => x.id === id);
@@ -157,7 +162,7 @@ export async function updateAiModel(
 }
 
 export async function deleteAiModel(id: string): Promise<void> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerDeleteAiModel(id);
   }
   localModels = localModels.filter((x) => x.id !== id);
@@ -166,14 +171,14 @@ export async function deleteAiModel(id: string): Promise<void> {
 // ── Policy ────────────────────────────────────────────────────────────────
 
 export async function fetchGlobalModelPolicy(): Promise<ModelPolicy> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerFetchGlobalModelPolicy();
   }
   return localGlobalPolicy;
 }
 
 export async function setGlobalModelPolicy(policy: ModelPolicy): Promise<ModelPolicy> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerSetGlobalModelPolicy(policy);
   }
   localGlobalPolicy = { ...policy };
@@ -181,7 +186,7 @@ export async function setGlobalModelPolicy(policy: ModelPolicy): Promise<ModelPo
 }
 
 export async function fetchTenantModelPolicy(tenant: string): Promise<ModelPolicy> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerFetchTenantModelPolicy(tenant);
   }
   return localTenantPolicies[tenant] ?? { roles: {} };
@@ -191,7 +196,7 @@ export async function setTenantModelPolicy(
   tenant: string,
   policy: ModelPolicy,
 ): Promise<ModelPolicy> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerSetTenantModelPolicy(tenant, policy);
   }
   localTenantPolicies[tenant] = { ...policy };
@@ -202,7 +207,7 @@ export async function resolveModelForRole(
   role: string,
   tenant?: string,
 ): Promise<ResolvedModel> {
-  if (getDataSource() === "manager") {
+  if (isLive()) {
     return managerResolveModelForRole(role, tenant);
   }
   // Mock resolution simulation
