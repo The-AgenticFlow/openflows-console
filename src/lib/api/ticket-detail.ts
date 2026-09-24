@@ -1,3 +1,4 @@
+import { fetchManagerTicketDetail } from "@/lib/api/manager-client";
 import { mockFleet } from "@/lib/api/mock-data";
 import { readTenantTicketDetail } from "@/lib/api/redis-reader";
 import { getEnv } from "@/lib/config/env";
@@ -9,6 +10,10 @@ export async function fetchTicketDetail(
   tenant: string,
   ticketId: string,
 ): Promise<TicketDetail | null> {
+  if (DATA_SOURCE === "manager") {
+    return fetchManagerTicketDetail(tenant, ticketId);
+  }
+
   if (DATA_SOURCE === "real") {
     return readTenantTicketDetail(tenant, ticketId);
   }

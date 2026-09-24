@@ -3,8 +3,9 @@
 export interface EnvSchema {
   REDIS_URL: string;
   OPENFLOWS_TENANT: string;
-  OPENFLOWS_DATA_SOURCE: "mock" | "real";
+  OPENFLOWS_DATA_SOURCE: "mock" | "real" | "manager";
   OPENFLOWS_CLI_PATH: string;
+  OPENFLOWS_MANAGER_URL: string;
 }
 
 type EnvName = keyof EnvSchema;
@@ -13,15 +14,15 @@ const requiredInRealMode: EnvName[] = ["REDIS_URL", "OPENFLOWS_TENANT"];
 
 export function getEnv<Name extends EnvName>(name: Name): EnvSchema[Name] | undefined {
   const dataSource = process.env.OPENFLOWS_DATA_SOURCE;
-  if (dataSource && dataSource !== "mock" && dataSource !== "real") {
-    throw new Error('OPENFLOWS_DATA_SOURCE must be "mock" or "real".');
+  if (dataSource && dataSource !== "mock" && dataSource !== "real" && dataSource !== "manager") {
+    throw new Error('OPENFLOWS_DATA_SOURCE must be "mock", "real", or "manager".');
   }
   return process.env[name] as EnvSchema[Name] | undefined;
 }
 
 export function validateEnv(): void {
   const dataSource = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
-  if (dataSource === "mock") return;
+  if (dataSource === "mock" || dataSource === "manager") return;
 
   const missing = requiredInRealMode.filter((required) => !getEnv(required));
   if (missing.length) {
