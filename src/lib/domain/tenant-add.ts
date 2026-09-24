@@ -1,11 +1,13 @@
 export interface TenantAddInput {
   repo: string;
   name?: string | null;
+  fleet?: number | null;
 }
 
 export interface NormalizedTenantAddInput {
   repo: string;
   name?: string;
+  fleet?: number;
 }
 
 export interface TenantActionInput {
@@ -25,17 +27,24 @@ export class TenantAddValidationError extends Error {
 export function normalizeTenantAddInput(input: TenantAddInput): NormalizedTenantAddInput {
   const repo = input.repo.trim();
   const name = input.name?.trim();
+  const fleet = input.fleet ? Math.max(1, Math.floor(input.fleet)) : undefined;
 
   validateRepositorySlug(repo);
   if (name) validateTenantName(name);
 
-  return name ? { repo, name } : { repo };
+  const res: NormalizedTenantAddInput = { repo };
+  if (name) res.name = name;
+  if (fleet) res.fleet = fleet;
+  return res;
 }
 
 export function buildTenantAddArgs(input: NormalizedTenantAddInput): string[] {
   const args = ["tenant", "add", input.repo];
   if (input.name) {
     args.push("--name", input.name);
+  }
+  if (input.fleet) {
+    args.push("--fleet", String(input.fleet));
   }
   return args;
 }

@@ -57,8 +57,9 @@ test("buildTenantAddArgs preserves the upstream openflows tenant add argument or
     buildTenantAddArgs({
       repo: "The-AgenticFlow/openflows-console",
       name: "trial_01",
+      fleet: 3,
     }),
-    ["tenant", "add", "The-AgenticFlow/openflows-console", "--name", "trial_01"],
+    ["tenant", "add", "The-AgenticFlow/openflows-console", "--name", "trial_01", "--fleet", "3"],
   );
 });
 
@@ -68,6 +69,14 @@ test("buildTenantAddArgs leaves --name off when the operator accepts the upstrea
     "add",
     "The-AgenticFlow/openflows-console",
   ]);
+});
+
+test("normalizeTenantAddInput normalizes fleet size to positive integers", () => {
+  const input = normalizeTenantAddInput({
+    repo: "The-AgenticFlow/openflows-console",
+    fleet: 2.7,
+  });
+  assert.equal(input.fleet, 2);
 });
 
 test("normalizeTenantActionInput accepts only the intended OpenFlows-safe tenant", () => {

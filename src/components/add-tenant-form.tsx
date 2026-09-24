@@ -22,6 +22,7 @@ export function AddTenantForm() {
   const queryClient = useQueryClient();
   const [repo, setRepo] = useState("");
   const [name, setName] = useState("");
+  const [fleet, setFleet] = useState(1);
   const [clientError, setClientError] = useState<string | null>(null);
   const [result, setResult] = useState<TenantAddResponse | null>(null);
 
@@ -41,7 +42,7 @@ export function AddTenantForm() {
     setResult(null);
 
     try {
-      const input = normalizeTenantAddInput({ repo, name });
+      const input = normalizeTenantAddInput({ repo, name, fleet });
       mutation.mutate(input);
     } catch (err) {
       setClientError(
@@ -60,18 +61,19 @@ export function AddTenantForm() {
         <div>
           <h2 className="text-base font-semibold text-foreground">Add tenant</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            Runs `openflows tenant add`, creates the tenant owner and nexus workspace,
-            then shows the GitHub OAuth guidance from the CLI.
+            Provisions a dedicated Coder nexus workspace for the repository, initializes the
+            agent team with the configured fleet size, and configures GitHub external auth.
           </p>
         </div>
         {mutation.isPending ? (
-          <span className="rounded-full bg-warning/15 px-3 py-1 text-xs font-medium text-warning">
-            CLI running
+          <span className="flex items-center gap-1.5 rounded-full bg-warning/15 px-3 py-1 text-xs font-medium text-warning">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-warning" />
+            Provisioning workspace
           </span>
         ) : null}
       </div>
 
-      <form onSubmit={onSubmit} className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+      <form onSubmit={onSubmit} className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_120px_auto]">
         <label className="grid gap-1 text-sm">
           <span className="font-medium text-foreground">Repository</span>
           <input
@@ -91,9 +93,22 @@ export function AddTenantForm() {
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="optional"
+            placeholder="optional (derived from repo)"
             autoComplete="off"
             className="rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted"
+            disabled={mutation.isPending}
+          />
+        </label>
+
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-foreground">Fleet size</span>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={fleet}
+            onChange={(event) => setFleet(Math.max(1, parseInt(event.target.value, 10) || 1))}
+            className="rounded-md border border-border bg-background px-3 py-2 text-foreground"
             disabled={mutation.isPending}
           />
         </label>
@@ -103,15 +118,25 @@ export function AddTenantForm() {
           disabled={mutation.isPending}
           className="self-end rounded-md bg-primary px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-primary-strong disabled:cursor-not-allowed disabled:bg-disabled"
         >
-          {mutation.isPending ? "Adding..." : "Add tenant"}
+          {mutation.isPending ? "Provisioning..." : "Add tenant"}
         </button>
       </form>
 
       {mutation.isPending ? (
         <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-4 text-sm text-warning">
-          Creating the Coder tenant user and nexus workspace. If the CLI prompts for
-          GitHub OAuth, complete the link in Coder and watch this panel for the
-          transcript.
+          <p className="font-medium">Building Coder workspace &amp; initializing agents...</p>
+          <p className="mt-1 text-xs opacity-90">
+            This typically takes 1 to 2 minutes on first build while container images and volumes are created.
+            If your account requires GitHub OAuth, authorize at{" "}
+            <a
+              href="http://localhost:7080/external-auth/primary-github"
+              target="_blank"
+              rel="noreferrer"
+              className="underline font-semibold"
+            >
+              http://localhost:7080/external-auth/primary-github
+            </a>.
+          </p>
         </div>
       ) : null}
 
@@ -167,7 +192,11 @@ export function AddTenantForm() {
   );
 }
 
-async function submitTenantAdd(input: { repo: string; name?: string }): Promise<TenantAddResponse> {
+async function submitTenantAdd(input: {
+  repo: string;
+  name?: string;
+  fleet?: number;
+}): Promise<TenantAddResponse> {
   const res = await fetch("/api/tenants/add", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

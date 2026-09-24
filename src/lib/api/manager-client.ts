@@ -108,3 +108,54 @@ export async function listManagerTenants(): Promise<string[]> {
   }
   return [];
 }
+
+export async function createManagerTenant(input: {
+  repo: string;
+  name?: string | null;
+  fleet?: number | null;
+}): Promise<{
+  ok: boolean;
+  message: string;
+  tenant?: string;
+  workspace_id?: string;
+  guidance?: string[];
+}> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/tenants`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      repo: input.repo,
+      name: input.name,
+      fleet: input.fleet,
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    const msg = errBody?.error?.message ?? `Manager create tenant failed with status ${res.status}`;
+    const guidance: string[] = [];
+    if (msg.includes("GitHub link") || msg.includes("external-auth")) {
+      guidance.push("GitHub link required: Complete authorization in Coder at /external-auth/primary-github.");
+    }
+    if (msg.includes("did not become ready")) {
+      guidance.push("The Coder workspace timed out waiting for ready status, but may still be starting in the background.");
+    }
+    return {
+      ok: false,
+      message: msg,
+      guidance: guidance.length ? guidance : ["Check Coder workspace and Manager logs and try again."],
+    };
+  }
+
+  const data = (await res.json()) as { tenant: string; workspace_id?: string };
+  return {
+    ok: true,
+    message: `Tenant "${data.tenant}" successfully provisioned and active.`,
+    tenant: data.tenant,
+    workspace_id: data.workspace_id,
+  };
+}

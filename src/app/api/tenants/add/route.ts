@@ -1,8 +1,10 @@
 // Tenant add route: trusted ADR-0001 write path that maps the UI action to the
-// upstream `openflows tenant add` command through a server-side CLI bridge.
+// upstream `openflows tenant add` command or Manager API based on data source.
 import { NextResponse } from "next/server";
 
+import { createManagerTenant } from "@/lib/api/manager-client";
 import { addTenantWithOpenFlowsCli } from "@/lib/cli/openflows";
+import { getEnv } from "@/lib/config/env";
 import { type TenantAddInput, TenantAddValidationError } from "@/lib/domain/tenant-add";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +12,13 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   try {
     const input = readTenantAddPayload(await readJson(request));
+    const dataSource = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
+
+    if (dataSource === "manager") {
+      const result = await createManagerTenant(input);
+      return NextResponse.json(result, { status: result.ok ? 200 : 502 });
+    }
+
     const result = await addTenantWithOpenFlowsCli(input);
     return NextResponse.json(result, { status: result.ok ? 200 : 502 });
   } catch (err) {
@@ -57,8 +66,18 @@ function readTenantAddPayload(payload: unknown): TenantAddInput {
     throw new TenantAddValidationError("Tenant name must be a string when provided.");
   }
 
+  let fleet: number | undefined;
+  if (record.fleet !== undefined && record.fleet !== null) {
+    const parsed = Number(record.fleet);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new TenantAddValidationError("Fleet size must be an integer greater than or equal to 1.");
+    }
+    fleet = parsed;
+  }
+
   return {
     repo: record.repo,
-    name: record.name ?? undefined,
+    name: (record.name as string | undefined) ?? undefined,
+    fleet,
   };
 }
