@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/tenants", label: "Tenants" },
   { href: "/kanban", label: "Kanban" },
+  { href: "/ai-settings", label: "AI & Models" },
 ];
 
 export function SiteHeader() {

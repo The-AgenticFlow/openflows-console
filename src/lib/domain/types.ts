@@ -130,3 +130,74 @@ export interface TenantFleet {
   ciReadiness?: CiReadiness;
   heartbeats?: Record<string, HeartbeatRecord>;
 }
+
+// ── AI Provider, Model, and Policy (Issue #290) ───────────────────────────
+export interface AiProviderSummary {
+  id: string;
+  type: string;
+  name: string;
+  display_name: string;
+  base_url: string;
+  enabled: boolean;
+  has_api_key: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AiProviderCreateInput {
+  provider_type: string;
+  name: string;
+  display_name?: string;
+  base_url?: string;
+  api_key?: string;
+  enabled?: boolean;
+}
+
+export interface AiProviderUpdateInput {
+  display_name?: string;
+  base_url?: string;
+  api_key?: string;
+  enabled?: boolean;
+}
+
+export interface AiModelSummary {
+  id: string;
+  ai_provider_id: string;
+  model: string;
+  display_name: string;
+  enabled: boolean;
+  is_default: boolean;
+  context_limit: number;
+  compression_threshold?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AiModelCreateInput {
+  ai_provider_id: string;
+  model: string;
+  display_name?: string;
+  context_limit?: number;
+  compression_threshold?: number;
+  is_default?: boolean;
+  enabled?: boolean;
+}
+
+export interface AiModelUpdateInput {
+  display_name?: string;
+  context_limit?: number;
+  compression_threshold?: number;
+  is_default?: boolean;
+  enabled?: boolean;
+}
+
+export interface ModelPolicy {
+  default_model?: string;
+  roles: Record<string, string>;
+}
+
+export interface ResolvedModel {
+  role: string;
+  model: string;
+  source: "role_policy" | "default_policy" | "coder_default";
+}

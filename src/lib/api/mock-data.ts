@@ -1,4 +1,9 @@
-import type { TenantFleet } from "@/lib/domain/types";
+import type {
+  AiModelSummary,
+  AiProviderSummary,
+  ModelPolicy,
+  TenantFleet,
+} from "@/lib/domain/types";
 
 // Bundled sample data for mock mode. Lets contributors develop without a
 // live OpenFlows deployment. Replace freely with more realistic fixtures.
@@ -89,3 +94,83 @@ export const mockFleet: TenantFleet[] = [
     ciReadiness: "missing",
   },
 ];
+
+export const mockAiProviders: AiProviderSummary[] = [
+  {
+    id: "prov-1",
+    type: "anthropic",
+    name: "anthropic-primary",
+    display_name: "Anthropic Claude",
+    base_url: "",
+    enabled: true,
+    has_api_key: true,
+    created_at: new Date(now - 86400000).toISOString(),
+    updated_at: new Date(now - 86400000).toISOString(),
+  },
+  {
+    id: "prov-2",
+    type: "openai",
+    name: "openai-main",
+    display_name: "OpenAI GPT",
+    base_url: "",
+    enabled: true,
+    has_api_key: true,
+    created_at: new Date(now - 86400000).toISOString(),
+    updated_at: new Date(now - 86400000).toISOString(),
+  },
+];
+
+export const mockAiModels: AiModelSummary[] = [
+  {
+    id: "model-1",
+    ai_provider_id: "prov-1",
+    model: "claude-3-7-sonnet-20250219",
+    display_name: "Claude 3.7 Sonnet",
+    enabled: true,
+    is_default: true,
+    context_limit: 200000,
+    created_at: new Date(now - 86400000).toISOString(),
+    updated_at: new Date(now - 86400000).toISOString(),
+  },
+  {
+    id: "model-2",
+    ai_provider_id: "prov-1",
+    model: "claude-3-5-haiku-20241022",
+    display_name: "Claude 3.5 Haiku",
+    enabled: true,
+    is_default: false,
+    context_limit: 200000,
+    created_at: new Date(now - 86400000).toISOString(),
+    updated_at: new Date(now - 86400000).toISOString(),
+  },
+  {
+    id: "model-3",
+    ai_provider_id: "prov-2",
+    model: "gpt-4o",
+    display_name: "GPT-4o",
+    enabled: true,
+    is_default: false,
+    context_limit: 128000,
+    created_at: new Date(now - 86400000).toISOString(),
+    updated_at: new Date(now - 86400000).toISOString(),
+  },
+  {
+    id: "model-4",
+    ai_provider_id: "prov-2",
+    model: "o3-mini",
+    display_name: "o3-mini",
+    enabled: true,
+    is_default: false,
+    context_limit: 200000,
+    created_at: new Date(now - 86400000).toISOString(),
+    updated_at: new Date(now - 86400000).toISOString(),
+  },
+];
+
+export const mockModelPolicy: ModelPolicy = {
+  default_model: "claude-3-7-sonnet-20250219",
+  roles: {
+    sentinel: "claude-3-7-sonnet-20250219",
+    vessel: "claude-3-5-haiku-20241022",
+  },
+};

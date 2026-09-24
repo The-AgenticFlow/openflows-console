@@ -2,10 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createAiProvider,
+  fetchAiModels,
+  fetchAiProviders,
+  fetchGlobalModelPolicy,
   fetchManagerFleet,
   fetchManagerTicketDetail,
   getManagerBaseUrl,
   listManagerTenants,
+  resolveModelForRole,
+  setGlobalModelPolicy,
 } from "./manager-client.ts";
 
 test("getManagerBaseUrl defaults to localhost:3002 without trailing slashes", () => {
@@ -103,4 +109,131 @@ test("listManagerTenants returns sorted tenant names", async (t) => {
 
   const tenants = await listManagerTenants();
   assert.deepEqual(tenants, ["alpha", "beta"]);
+});
+
+test("fetchAiProviders and createAiProvider work with masked secrets", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  globalThis.fetch = async (url, init) => {
+    if (init?.method === "POST") {
+      const body = JSON.parse(init.body as string);
+      return new Response(
+        JSON.stringify({
+          id: "prov-1",
+          type: body.provider_type,
+          name: body.name,
+          display_name: body.display_name,
+          base_url: "",
+          enabled: true,
+          has_api_key: Boolean(body.api_key),
+          created_at: "2026-09-24T10:00:00Z",
+          updated_at: "2026-09-24T10:00:00Z",
+        }),
+        { status: 201, headers: { "content-type": "application/json" } },
+      );
+    }
+    return new Response(
+      JSON.stringify([
+        {
+          id: "prov-1",
+          type: "anthropic",
+          name: "claude-main",
+          display_name: "Claude",
+          base_url: "",
+          enabled: true,
+          has_api_key: true,
+          created_at: "2026-09-24T10:00:00Z",
+          updated_at: "2026-09-24T10:00:00Z",
+        },
+      ]),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  };
+
+  const created = await createAiProvider({
+    provider_type: "anthropic",
+    name: "claude-main",
+    display_name: "Claude",
+    api_key: "sk-secret-key-12345",
+  });
+  assert.equal(created.id, "prov-1");
+  assert.equal(created.has_api_key, true);
+
+  const providers = await fetchAiProviders();
+  assert.equal(providers.length, 1);
+  assert.equal(providers[0]?.name, "claude-main");
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify([
+        {
+          id: "m-1",
+          ai_provider_id: "prov-1",
+          model: "claude-3-7-sonnet",
+          display_name: "Claude 3.7",
+          context_limit: 200000,
+          is_default: true,
+          enabled: true,
+          created_at: "2026-09-24T10:00:00Z",
+          updated_at: "2026-09-24T10:00:00Z",
+        },
+      ]),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  const models = await fetchAiModels();
+  assert.equal(models.length, 1);
+  assert.equal(models[0]?.model, "claude-3-7-sonnet");
+});
+
+test("model policy GET, PUT and role resolution", async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  globalThis.fetch = async (url, init) => {
+    const urlStr = url.toString();
+    if (urlStr.includes("/resolve")) {
+      return new Response(
+        JSON.stringify({
+          role: "forge",
+          model: "claude-3-7-sonnet",
+          source: "role_policy",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    if (init?.method === "PUT") {
+      const body = JSON.parse(init.body as string);
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    return new Response(
+      JSON.stringify({
+        default_model: "gpt-4o",
+        roles: { forge: "claude-3-7-sonnet" },
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  };
+
+  const policy = await fetchGlobalModelPolicy();
+  assert.equal(policy.default_model, "gpt-4o");
+  assert.equal(policy.roles["forge"], "claude-3-7-sonnet");
+
+  const updated = await setGlobalModelPolicy({
+    default_model: "claude-3-7-sonnet",
+    roles: {},
+  });
+  assert.equal(updated.default_model, "claude-3-7-sonnet");
+
+  const resolved = await resolveModelForRole("forge");
+  assert.equal(resolved.role, "forge");
+  assert.equal(resolved.model, "claude-3-7-sonnet");
+  assert.equal(resolved.source, "role_policy");
 });

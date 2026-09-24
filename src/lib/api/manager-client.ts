@@ -1,5 +1,16 @@
 import { getEnv } from "../config/env.ts";
-import type { TenantFleet, TicketDetail } from "../domain/types.ts";
+import type {
+  AiModelCreateInput,
+  AiModelSummary,
+  AiModelUpdateInput,
+  AiProviderCreateInput,
+  AiProviderSummary,
+  AiProviderUpdateInput,
+  ModelPolicy,
+  ResolvedModel,
+  TenantFleet,
+  TicketDetail,
+} from "../domain/types.ts";
 
 export interface ManagerErrorResponse {
   error: {
@@ -158,4 +169,194 @@ export async function createManagerTenant(input: {
     tenant: data.tenant,
     workspace_id: data.workspace_id,
   };
+}
+
+// ── AI Providers ──────────────────────────────────────────────────────────
+export async function fetchAiProviders(): Promise<AiProviderSummary[]> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/providers`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to fetch AI providers (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function createAiProvider(input: AiProviderCreateInput): Promise<AiProviderSummary> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/providers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to create AI provider (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function updateAiProvider(
+  id: string,
+  input: AiProviderUpdateInput,
+): Promise<AiProviderSummary> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/providers/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to update AI provider (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteAiProvider(id: string): Promise<void> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/providers/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to delete AI provider (${res.status})`);
+  }
+}
+
+// ── AI Models ─────────────────────────────────────────────────────────────
+export async function fetchAiModels(): Promise<AiModelSummary[]> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/models`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to fetch AI models (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function createAiModel(input: AiModelCreateInput): Promise<AiModelSummary> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/models`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to create AI model (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function updateAiModel(
+  id: string,
+  input: AiModelUpdateInput,
+): Promise<AiModelSummary> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/models/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to update AI model (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteAiModel(id: string): Promise<void> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/models/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to delete AI model (${res.status})`);
+  }
+}
+
+// ── Model Assignment Policy ────────────────────────────────────────────────
+export async function fetchGlobalModelPolicy(): Promise<ModelPolicy> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/model-policy`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to fetch global model policy (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function setGlobalModelPolicy(policy: ModelPolicy): Promise<ModelPolicy> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/ai/model-policy`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(policy),
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to set global model policy (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchTenantModelPolicy(tenant: string): Promise<ModelPolicy> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/tenants/${encodeURIComponent(tenant)}/ai/model-policy`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to fetch tenant model policy (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function setTenantModelPolicy(
+  tenant: string,
+  policy: ModelPolicy,
+): Promise<ModelPolicy> {
+  const base = getManagerBaseUrl();
+  const res = await fetch(`${base}/api/v1/tenants/${encodeURIComponent(tenant)}/ai/model-policy`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(policy),
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to set tenant model policy (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function resolveModelForRole(role: string, tenant?: string): Promise<ResolvedModel> {
+  const base = getManagerBaseUrl();
+  const url = new URL(`${base}/api/v1/ai/model-policy/resolve`);
+  url.searchParams.set("role", role);
+  if (tenant) {
+    url.searchParams.set("tenant", tenant);
+  }
+  const res = await fetch(url.toString(), {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as ManagerErrorResponse | null;
+    throw new Error(errBody?.error?.message ?? `Failed to resolve model for role (${res.status})`);
+  }
+  return res.json();
 }
