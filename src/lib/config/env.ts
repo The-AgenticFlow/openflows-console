@@ -1,32 +1,25 @@
 // Runtime environment access and startup validation for server-side OpenFlows
-// integrations. This is the only module that reads process.env.
+// integrations. This is the only module that reads process.env (next.config.ts
+// is the single documented exception: rewrites resolve before app code runs).
 export interface EnvSchema {
-  REDIS_URL: string;
-  OPENFLOWS_TENANT: string;
-  OPENFLOWS_DATA_SOURCE: "mock" | "real";
-  OPENFLOWS_CLI_PATH: string;
+  // Base URL of OpenFlows Manager. The Console reaches only its /api/v1 (and
+  // the login pages under /auth), same-origin through a Next rewrite.
+  OPENFLOWS_MANAGER_URL: string;
 }
 
 type EnvName = keyof EnvSchema;
 
-const requiredInRealMode: EnvName[] = ["REDIS_URL", "OPENFLOWS_TENANT"];
+const DEFAULTS: Partial<EnvSchema> = { OPENFLOWS_MANAGER_URL: "http://127.0.0.1:3002" };
 
-export function getEnv<Name extends EnvName>(name: Name): EnvSchema[Name] | undefined {
-  const dataSource = process.env.OPENFLOWS_DATA_SOURCE;
-  if (dataSource && dataSource !== "mock" && dataSource !== "real") {
-    throw new Error('OPENFLOWS_DATA_SOURCE must be "mock" or "real".');
-  }
-  return process.env[name] as EnvSchema[Name] | undefined;
+export function getEnv<Name extends EnvName>(name: Name): EnvSchema[Name] {
+  return ((process.env[name] as EnvSchema[Name] | undefined) ?? DEFAULTS[name]) as EnvSchema[Name];
 }
 
 export function validateEnv(): void {
-  const dataSource = getEnv("OPENFLOWS_DATA_SOURCE") ?? "mock";
-  if (dataSource === "mock") return;
-
-  const missing = requiredInRealMode.filter((required) => !getEnv(required));
-  if (missing.length) {
-    throw new Error(
-      `Missing required environment variables for real mode:\n- ${missing.join("\n- ")}\nConfigure them in the deployment environment, or in .env.local for local development.`,
-    );
+  const url = getEnv("OPENFLOWS_MANAGER_URL");
+  try {
+    new URL(url);
+  } catch {
+    throw new Error(`OPENFLOWS_MANAGER_URL is not a valid URL: ${url}`);
   }
 }

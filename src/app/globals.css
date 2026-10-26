@@ -1,60 +1,64 @@
 @import "tailwindcss";
 
 /*
- * Dark theme (default). Near-black zinc surfaces, sky accent, and
- * content/border roles expressed as HSL triplets.
+ * Dark, neutral design tokens (modelled on Coder's dashboard): near-black
+ * canvas, slightly lifted panels with hairline borders, white primary actions,
+ * and the logo's green/purple/orange kept for status and accents. Semantic
+ * roles are exposed as Tailwind colours below (bg-surface, text-muted,
+ * border-border…) so components never hard-code a colour.
  */
 :root {
-  /* backgrounds */
-  --background: 240 10% 4%; /* zinc-950 app background */
-  --surface: 240 6% 10%; /* zinc-900 paper / cards */
-  --surface-muted: 240 4% 16%; /* inset / hover surface */
+  --canvas: #09090b;
+  --surface: #101012;
+  --surface-muted: #18181b;
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --subtle: #71717a;
+  --border: #232327;
+  --border-strong: #34343a;
 
-  /* text (content) */
-  --foreground: 0 0% 98%; /* content-primary */
-  --muted: 240 5% 65%; /* content-secondary */
-  --link: 213 94% 68%; /* content-link (dark) */
-  --disabled: 240 5% 26%; /* content-disabled */
+  --primary: #fafafa;
+  --primary-hover: #d4d4d8;
+  --primary-soft: #1f1f23;
+  --on-primary: #09090b;
+  --accent: #4cb88a; /* logo green */
 
-  /* borders */
-  --border: 240 4% 16%; /* border-default */
-  --border-strong: 240 5% 26%; /* border-secondary */
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --info: #818cf8; /* logo purple, lightened */
+  --info-soft: rgba(129, 140, 248, 0.14);
 
-  /* accent (sky, matching Coder primary) */
-  --primary: 199 89% 48%; /* sky-500 */
-  --primary-strong: 198 93% 60%; /* sky-400 hover */
-  --accent: 198 93% 60%; /* sky-400 */
-
-  /* status */
-  --success: 160 84% 39%; /* green-600 */
-  --warning: 32 95% 44%; /* amber-600 */
-  --danger: 0 91% 71%; /* content-destructive (dark) */
-
-  /* controls */
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
+  --ring: #a1a1aa;
 }
 
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-surface: hsl(var(--surface));
-  --color-surface-muted: hsl(var(--surface-muted));
-  --color-foreground: hsl(var(--foreground));
-  --color-muted: hsl(var(--muted));
-  --color-link: hsl(var(--link));
-  --color-disabled: hsl(var(--disabled));
-  --color-border: hsl(var(--border));
-  --color-border-strong: hsl(var(--border-strong));
-  --color-primary: hsl(var(--primary));
-  --color-primary-strong: hsl(var(--primary-strong));
-  --color-accent: hsl(var(--accent));
-  --color-success: hsl(var(--success));
-  --color-warning: hsl(var(--warning));
-  --color-danger: hsl(var(--danger));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-on-primary: var(--on-primary);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 html {
@@ -62,12 +66,22 @@ html {
 }
 
 body {
-  background: var(--background);
+  background: var(--canvas);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 :focus-visible {
-  outline: 2px solid hsl(var(--primary));
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -6,11 +6,13 @@ OpenFlows is an autonomous AI software team that turns GitHub issues into review
 
 ## Features
 
-- **Agent monitoring** — live agent lifecycle and work progress across Coder workspaces at a glance.
-- **Tenant management** — add and delete multi-tenant workspaces together with all of their resources.
-- **Task Kanban** — carry tickets through their lifecycle: *implementation → progress → review → done → merge*.
-- **System health** — surface what `openflows doctor` reports so operators can see and act on system status without reading terminal output.
-- **GitHub-first onboarding** — free-trial signup, authorise OpenFlows against your repositories, log in via GitHub, and add a `repo/owner` per tenant.
+- **GitHub sign-in and organisations** — sign in with GitHub, create organisations, switch between them; every view is scoped to the organisation and role of the signed-in user.
+- **GitHub App connection** — guided install, accessible repositories, missing-permission and revoked-access recovery, reconcile.
+- **Tenant lifecycle** — create a tenant from an authorised repository, watch stage-by-stage provisioning, and start / stop / clean / retry / delete with state-aware controls and explicit confirmation for destructive actions.
+- **Members** — invitation links, role changes, removal and ownership transfer.
+- **Operations** — stable, shareable operation and tenant URLs with progress, safe failure detail and recovery guidance.
+
+The Console talks only to OpenFlows Manager's `/api/v1` (see [ADR-0006](./docs/adr/0006-manager-api-only-bff.md)); it never touches Redis, Coder or privileged GitHub APIs. It requires a running Manager (see CONTRIBUTING.md).
 
 ## Getting Started
 
@@ -67,17 +69,15 @@ docs/
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, workflow, and quality gates. The app runs standalone in **mock mode** — no OpenFlows deployment or credentials needed to develop.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, workflow, and quality gates. See CONTRIBUTING.md to run it against a local Manager.
 
 ## Roadmap
 
-- [ ] Wireframe and admin surface proposal
-- [ ] Inventory of `doctor` checks mapped to the UI
-- [ ] GitHub auth + free-trial onboarding flow
-- [ ] Dashboard: agent / Coder monitoring
-- [ ] Tenant management
-- [ ] Task Kanban board
-- [ ] System health view
+- [x] Console foundation, sign-in, organisations, onboarding (Phase 1)
+- [x] GitHub App connection and recovery (Phase 2)
+- [x] Tenant lifecycle and operation timeline (Phase 3)
+- [x] Members, invitations, roles, ownership transfer, audit history, platform operator views (Phase 4)
+- [ ] Browser end-to-end tests and CI wiring
 
 ## Related
 

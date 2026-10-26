@@ -1,15 +1,18 @@
-// Home route: the Dashboard, rendering the live fleet status overview.
-import { FleetOverview } from "@/components/fleet-overview";
-import { PageHeader } from "@/components/page-header";
+// Root: chooses where a signed-in user lands. No organisation yet → create
+// one; otherwise → their first organisation. Query params are forwarded.
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <PageHeader
-        title="Dashboard"
-        description="Live status of your OpenFlows fleet."
-      />
-      <FleetOverview />
-    </div>
-  );
+import { getConsoleSession, UnauthenticatedError } from "@/lib/server/manager";
+
+export default async function Home({ searchParams }: Readonly<{ searchParams: Promise<Record<string, string>> }>) {
+  let orgs;
+  try {
+    orgs = (await getConsoleSession()).orgs;
+  } catch (e) {
+    if (e instanceof UnauthenticatedError) redirect("/login");
+    throw e;
+  }
+  if (orgs.length === 0) redirect("/orgs/new");
+  const qs = new URLSearchParams(await searchParams).toString();
+  redirect(`/o/${orgs[0].slug}${qs ? `?${qs}` : ""}`);
 }
