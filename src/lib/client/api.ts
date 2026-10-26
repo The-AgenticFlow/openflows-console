@@ -99,7 +99,18 @@ async function send(method: string, path: string, body: unknown, idempotencyKey:
 
 async function request<T>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
   const res = await send(method, path, body, idempotencyKey, true);
-  if (!res.ok) throw await parseError(res);
+  if (!res.ok) {
+    const err = await parseError(res);
+    // Expired or revoked session: send the user back to sign-in instead of leaving
+    // a page of failing requests. CSRF_FAILED is handled (refreshed) in `send`.
+    if (err.code === "UNAUTHORIZED" && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+      resetCsrfCache();
+      // Deliberate full reload (not router.push): it drops every cached query and in-memory token.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.href = "/login?expired=1";
+    }
+    throw err;
+  }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;

@@ -29,9 +29,9 @@ function GithubMark() {
   );
 }
 
-export default async function LoginPage({ searchParams }: Readonly<{ searchParams: Promise<{ error?: string }> }>) {
-  const { error } = await searchParams;
-  const message = error ? (MESSAGES[error] ?? MESSAGES.denied) : null;
+export default async function LoginPage({ searchParams }: Readonly<{ searchParams: Promise<{ error?: string; expired?: string }> }>) {
+  const { error, expired } = await searchParams;
+  const message = expired ? "Your session expired. Please sign in again." : error ? (MESSAGES[error] ?? MESSAGES.denied) : null;
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
