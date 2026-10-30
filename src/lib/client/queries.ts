@@ -3,7 +3,7 @@
 // another. Polling (1.5s) runs only while an operation or tenant is in flight.
 "use client";
 
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { isOperationActive, type Role, type TenantAction } from "../manager/contract";
 import { api } from "./api";
@@ -16,6 +16,7 @@ export const keys = {
   tenant: (o: string, t: string) => ["org", o, "tenant", t] as const,
   tenantStatus: (o: string, t: string) => ["org", o, "tenant", t, "status"] as const,
   members: (o: string) => ["org", o, "members"] as const,
+  invitations: (o: string) => ["org", o, "invitations"] as const,
   operation: (id: string) => ["operation", id] as const,
 };
 
@@ -54,7 +55,16 @@ export const useOperation = (id: string | null) =>
   });
 
 export const useCoderIdentity = () => useQuery({ queryKey: ["me", "coder"], queryFn: () => api.getCoderIdentity(), retry: false });
-export const useAudit = (orgId: string) => useQuery({ queryKey: ["org", orgId, "audit"], queryFn: () => api.listAudit(orgId), retry: false });
+export const useAudit = (orgId: string) =>
+  useInfiniteQuery({
+    queryKey: ["org", orgId, "audit"],
+    queryFn: ({ pageParam }) => api.listAudit(orgId, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+    retry: false,
+  });
+export const useInvitations = (orgId: string, enabled: boolean) =>
+  useQuery({ queryKey: keys.invitations(orgId), queryFn: () => api.listInvitations(orgId), enabled, retry: false });
 export const useOperations = (orgId: string) =>
   useQuery({ queryKey: ["org", orgId, "operations"], queryFn: () => api.listOperations(orgId), retry: false });
 export const useRepositories = (orgId: string, connectionId: string | undefined) =>

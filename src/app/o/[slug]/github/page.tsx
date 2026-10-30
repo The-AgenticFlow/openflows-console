@@ -3,14 +3,18 @@ import type { Metadata } from "next";
 
 import { GithubConnection } from "@/components/github-connection";
 import { PageHeader } from "@/components/ui/primitives";
+import { getMessages } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "GitHub" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getMessages();
+  return { title: t.github.metaTitle };
+}
 
 export default async function GithubPage({ searchParams }: Readonly<{ searchParams: Promise<{ connected?: string }> }>) {
-  const { connected } = await searchParams;
+  const [{ connected }, { t }] = await Promise.all([searchParams, getMessages()]);
   return (
     <>
-      <PageHeader title="GitHub" description="Connect repositories and keep the installation healthy." />
+      <PageHeader title={t.github.title} description={t.github.description} />
       <div className="space-y-6">
         <GithubConnection justConnected={connected === "1"} />
       </div>

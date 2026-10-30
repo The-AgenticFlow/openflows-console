@@ -5,6 +5,14 @@ export interface EnvSchema {
   // Base URL of OpenFlows Manager. The Console reaches only its /api/v1 (and
   // the login pages under /auth), same-origin through a Next rewrite.
   OPENFLOWS_MANAGER_URL: string;
+  // Optional links shown in the sign-in page footer. Each is rendered only when
+  // set, so the Console never links to a page an operator does not have.
+  // OPENFLOWS_SUPPORT_URL may be a mailto: address ("Need help signing in?").
+  OPENFLOWS_DOCS_URL?: string;
+  OPENFLOWS_STATUS_URL?: string;
+  OPENFLOWS_PRIVACY_URL?: string;
+  OPENFLOWS_TERMS_URL?: string;
+  OPENFLOWS_SUPPORT_URL?: string;
 }
 
 type EnvName = keyof EnvSchema;
@@ -21,5 +29,22 @@ export function validateEnv(): void {
     new URL(url);
   } catch {
     throw new Error(`OPENFLOWS_MANAGER_URL is not a valid URL: ${url}`);
+  }
+}
+
+type LinkName = "OPENFLOWS_DOCS_URL" | "OPENFLOWS_STATUS_URL" | "OPENFLOWS_PRIVACY_URL" | "OPENFLOWS_TERMS_URL" | "OPENFLOWS_SUPPORT_URL";
+
+/**
+ * An operator-configured footer link, or undefined when unset or unsafe. Only
+ * absolute http(s) URLs and mailto: are accepted, so a misconfigured value can
+ * never become a javascript: link.
+ */
+export function getLink(name: LinkName): string | undefined {
+  const raw = getEnv(name)?.trim();
+  if (!raw) return undefined;
+  try {
+    return ["http:", "https:", "mailto:"].includes(new URL(raw).protocol) ? raw : undefined;
+  } catch {
+    return undefined;
   }
 }

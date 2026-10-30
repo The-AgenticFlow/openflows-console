@@ -73,6 +73,11 @@ pnpm dev
 ```
 
 - `OPENFLOWS_MANAGER_URL` — Manager's base URL (default `http://127.0.0.1:3002`).
+- `OPENFLOWS_DOCS_URL`, `OPENFLOWS_STATUS_URL`, `OPENFLOWS_PRIVACY_URL`,
+  `OPENFLOWS_TERMS_URL` — optional sign-in page footer links; each is shown only
+  when set (absolute `http(s)` URLs only).
+- `OPENFLOWS_SUPPORT_URL` — optional target of the "Need help signing in?" link;
+  an `http(s)` URL or a `mailto:` address. Hidden when unset.
 - Sign-in uses Manager's GitHub OAuth. Register `http://localhost:3000/auth/github/callback`
   as a callback URL on the GitHub App Manager is configured with.
 - Never commit `.env.local` or real credentials.

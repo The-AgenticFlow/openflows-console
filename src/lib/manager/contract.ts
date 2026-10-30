@@ -33,6 +33,36 @@ export interface Organization {
   display_name: string;
   status: string;
   owner_user_id: string;
+  /** Latest setup operation; present only while the organisation is not ready. */
+  provisioning?: ProvisioningSummary | null;
+}
+
+export interface ProvisioningSummary {
+  operation_id: string;
+  state: string;
+  current_step: string | null;
+  attempt_count: number;
+  /** Stable code such as `CODER_ORG_FAILED`; never an upstream error body. */
+  error_code: string | null;
+}
+
+/** Product-language cause and next step for a failed organisation setup. */
+export function setupFailureMessage(code: string | null): string {
+  switch (code) {
+    case "CODER_ORG_FAILED":
+      return "OpenFlows could not create your organisation in Coder. The Coder deployment may be missing a licence feature or be unreachable.";
+    case "PROVISIONER_NOT_READY":
+      return "The Coder provisioner for your organisation did not come online. The Coder deployment may be missing a licence feature or be unreachable.";
+    case "CODER_CAPABILITIES_UNMET":
+    case "CODER_VERSION_UNMET":
+      return "The connected Coder deployment does not meet OpenFlows requirements (version or licence).";
+    case "RELEASE_NOT_CONFIGURED":
+      return "No runtime template release is configured on this OpenFlows installation.";
+    case "IMPORT_FAILED":
+      return "The runtime templates could not be imported into Coder.";
+    default:
+      return "Setup did not finish.";
+  }
 }
 
 export interface CursorPage<T> {
@@ -111,30 +141,50 @@ export interface CoderIdentity {
   account: { id: string; deployment: string } | null;
 }
 
-// ── Endpoints Manager does not serve yet ────────────────────────────────────
-// The Console is written against these proposed shapes. Until Manager ships
-// them, requests 404 and the UI shows an explicit "not available yet" state
-// (see `isUnsupported`) instead of inventing data.
+// ── Read endpoints added for the Console ────────────────────────────────────
+// Audit, pending invitations, connection repositories and the platform
+// overview. Older Managers answer 404 for these; `isUnsupported` lets the UI
+// show an explicit "not available" state instead of inventing data.
 export interface AuditEntry {
   id: string;
   occurred_at: string;
-  actor: string;
+  actor_type: string;
+  actor_id: string | null;
+  /** Display name of the acting user, when the actor is a user. */
+  actor_name: string | null;
   action: string;
-  target: string;
+  resource_type: string | null;
+  resource_id: string | null;
   result: string;
-  request_id: string;
+  request_id: string | null;
+}
+
+export interface PendingInvitation {
+  invitation_id: string;
+  invitee_github_user_id: number;
+  /** Known only once the invitee has signed in to OpenFlows at least once. */
+  invitee_login: string | null;
+  role: Role;
+  invited_by: string | null;
+  created_at: string;
+  expires_at: string;
+  status: "pending" | "expired";
 }
 
 export interface Repository {
   id: number | string;
   full_name: string;
-  private: boolean;
+  last_seen_at?: string;
 }
 
+/** Platform-wide counts for operators. Keys of `by_*` maps are Manager statuses. */
 export interface PlatformOverview {
-  fleet: { tenants_total: number; running: number; failed: number; capacity_used: number; capacity_total: number };
-  templates: { name: string; version: string; status: string; tenants: number }[];
-  components: { name: string; status: "healthy" | "degraded" | "down"; detail: string }[];
+  organizations: { total: number; by_status: Record<string, number> };
+  tenants: { total: number; by_state: Record<string, number> };
+  github_connections: { total: number; by_status: Record<string, number> };
+  operations: { by_state: Record<string, number> };
+  outbox_pending: number;
+  templates: { version: string; status: string; tenants: number }[];
 }
 
 /** Manager's error envelope: `{ error: { code, message, request_id, retryable } }`. */
@@ -208,15 +258,20 @@ export function validateRepositoryUrl(url: string): string | null {
     : "Use a repository URL like https://github.com/owner/repo.";
 }
 
-/** Tenant states in product language. */
-export function tenantStateLabel(t: Pick<Tenant, "observed_state" | "desired_state">): { label: string; tone: "neutral" | "info" | "success" | "warning" | "danger" } {
+/**
+ * Tenant states in product language. `key` names the normalised state so the
+ * UI can show it in the active language (`label` is the English fallback);
+ * it is null for states Manager may add later.
+ */
+export type TenantStateKey = "running" | "provisioning" | "stopped" | "deleting" | "failed";
+export function tenantStateLabel(t: Pick<Tenant, "observed_state" | "desired_state">): { label: string; key: TenantStateKey | null; tone: "neutral" | "info" | "success" | "warning" | "danger" } {
   const s = t.observed_state;
-  if (s === "running") return { label: "Running", tone: "success" };
-  if (s === "provisioning" || s === "pending") return { label: "Provisioning", tone: "info" };
-  if (s === "paused" || s === "stopped") return { label: "Stopped", tone: "neutral" };
-  if (s === "deleting") return { label: "Deleting", tone: "warning" };
-  if (s === "failed" || s === "error") return { label: "Failed", tone: "danger" };
-  return { label: s.replace(/_/g, " "), tone: "neutral" };
+  if (s === "running") return { label: "Running", key: "running", tone: "success" };
+  if (s === "provisioning" || s === "pending") return { label: "Provisioning", key: "provisioning", tone: "info" };
+  if (s === "paused" || s === "stopped") return { label: "Stopped", key: "stopped", tone: "neutral" };
+  if (s === "deleting") return { label: "Deleting", key: "deleting", tone: "warning" };
+  if (s === "failed" || s === "error") return { label: "Failed", key: "failed", tone: "danger" };
+  return { label: s.replace(/_/g, " "), key: null, tone: "neutral" };
 }
 
 export type TenantAction = "start" | "stop" | "clean" | "delete";
@@ -229,7 +284,10 @@ export function tenantActions(t: Pick<Tenant, "observed_state">, role: Role): Te
     if (s === "paused" || s === "stopped" || s === "failed") out.push("start");
     if (s === "running") out.push("stop");
   }
-  if (canAdminister(role) && s !== "provisioning" && s !== "deleting") out.push("clean", "delete");
+  // Delete stays available while provisioning (Manager accepts it), so a
+  // tenant stuck mid-setup can always be removed and created again.
+  if (canAdminister(role) && s !== "provisioning" && s !== "deleting") out.push("clean");
+  if (canAdminister(role) && s !== "deleting") out.push("delete");
   return out;
 }
 

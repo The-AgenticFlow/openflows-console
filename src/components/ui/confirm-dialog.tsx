@@ -1,12 +1,14 @@
 // ConfirmDialog: accessible confirmation built on the native <dialog> element
 // (focus is trapped and Escape closes it by the platform). For destructive
 // actions `requireText` forces the user to type a name before the confirm
-// button enables, so a stray click cannot delete anything.
+// button enables, so a stray click cannot delete anything. Its own labels
+// (Cancel, "Type … to confirm") follow the active language.
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 
 import type { ConsoleError } from "@/lib/client/api";
+import { useT } from "@/lib/preferences/client";
 
 import { Button } from "./button";
 import { ErrorNotice } from "./primitives";
@@ -34,6 +36,7 @@ export function ConfirmDialog({
   onConfirm: (typed: string) => void;
   onClose: () => void;
 }>) {
+  const { t } = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const [typed, setTyped] = useState("");
 
@@ -53,7 +56,7 @@ export function ConfirmDialog({
       aria-describedby="confirm-desc"
       onClose={() => { setTyped(""); onClose(); }}
       onCancel={(e) => { if (pending) e.preventDefault(); }}
-      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-0 text-foreground shadow-xl backdrop:bg-black/70"
+      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-0 text-foreground shadow-xl backdrop:bg-overlay"
     >
       <form
         method="dialog"
@@ -67,7 +70,7 @@ export function ConfirmDialog({
         {requireText ? (
           <div>
             <label htmlFor="confirm-text" className="mb-1.5 block text-sm font-medium">
-              Type <span className="font-mono">{requireText}</span> to confirm
+              {t.common.typeToConfirm.split("{text}")[0]}<span className="font-mono">{requireText}</span>{t.common.typeToConfirm.split("{text}")[1]}
             </label>
             <input
               id="confirm-text"
@@ -81,7 +84,7 @@ export function ConfirmDialog({
         ) : null}
         {error ? <ErrorNotice error={error} /> : null}
         <div className="flex justify-end gap-2">
-          <Button onClick={onClose} disabled={pending}>Cancel</Button>
+          <Button onClick={onClose} disabled={pending}>{t.common.cancel}</Button>
           <Button type="submit" variant={danger ? "danger" : "primary"} loading={pending} disabled={!ready}>{confirmLabel}</Button>
         </div>
       </form>

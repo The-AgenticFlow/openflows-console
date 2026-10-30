@@ -1,18 +1,19 @@
 // Button + LinkButton: the one place button styling lives. Variants map to
 // intent (primary action, quiet secondary, destructive). `loading` disables
-// the control and shows a spinner while keeping its width stable.
+// the control and shows a spinner while keeping its width stable. Buttons give
+// tactile feedback (a slight press scale) using the shared motion tokens.
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const base =
-  "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-on-primary hover:bg-primary-hover",
-  secondary: "border border-border-strong bg-surface text-foreground hover:bg-surface-muted",
+  primary: "bg-primary text-on-primary shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] hover:bg-primary-hover",
+  secondary: "border border-border-strong bg-surface-raised text-foreground hover:border-subtle/50 hover:bg-surface-muted",
   ghost: "text-muted hover:bg-surface-muted hover:text-foreground",
-  danger: "bg-danger text-on-primary hover:opacity-90",
+  danger: "bg-danger text-on-primary hover:bg-danger/90",
 };
 
 export const buttonClass = (variant: Variant = "secondary") => `${base} ${variants[variant]}`;

@@ -4,7 +4,8 @@
 // Manager re-checks it against the org's GitHub connection). Creation is
 // asynchronous (202 + operation): we send the user to the tenant page, which
 // shows provisioning progress. One idempotency key per attempt is reused on
-// retry so a double-submit cannot create two tenants.
+// retry so a double-submit cannot create two tenants. A side panel explains
+// what creating a tenant does. Text follows the active language.
 "use client";
 
 import Link from "next/link";
@@ -14,14 +15,18 @@ import { useRef, useState } from "react";
 import { api, ConsoleError } from "@/lib/client/api";
 import { useConnections, useRepositories } from "@/lib/client/queries";
 import { canOperate, slugify, validateRepositoryUrl } from "@/lib/manager/contract";
+import { useT } from "@/lib/preferences/client";
 
 import { useConsole } from "./shell/console-context";
 import { Button, LinkButton } from "./ui/button";
-import { Card, CardHeader, EmptyState, ErrorNotice } from "./ui/primitives";
+import { IconCheck, IconGithub, IconSparkles } from "./ui/icons";
+import { Card, CardHeader, EmptyState, ErrorNotice, inputClass, Skeleton } from "./ui/primitives";
 
 export function TenantCreateWizard() {
   const { org, orgId, role } = useConsole();
   const router = useRouter();
+  const { t } = useT();
+  const w = t.wizard;
   const conns = useConnections(orgId);
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
@@ -38,15 +43,15 @@ export function TenantCreateWizard() {
   const picker = repos.data?.items ?? null; // null until Manager lists repositories
 
   if (!canOperate(role)) {
-    return <Card><EmptyState title="Not available for your role" description="Ask an organisation admin or developer to create tenants." action={<LinkButton href={`/o/${org.slug}/tenants`}>Back to tenants</LinkButton>} /></Card>;
+    return <Card><EmptyState title={w.notForRole} description={w.notForRoleBody} action={<LinkButton href={`/o/${org.slug}/tenants`}>{t.tenant.backToTenants}</LinkButton>} /></Card>;
   }
-  if (conns.isPending) return <Card><div className="h-24 animate-pulse p-5" aria-busy="true" /></Card>;
+  if (conns.isPending) return <Card><div className="space-y-3 p-5" aria-busy="true"><Skeleton className="h-6 w-1/3" /><Skeleton className="h-10" /></div></Card>;
   const connected = conns.data?.items.some((c) => c.status === "active");
   if (!connected) {
-    return <Card><EmptyState title="Connect GitHub first" description="Tenants run against a repository you authorise through the OpenFlows GitHub App." action={<LinkButton href={`/o/${org.slug}/github`} variant="primary">Go to GitHub</LinkButton>} /></Card>;
+    return <Card><EmptyState icon={<IconGithub size={18} />} title={w.connectFirst} description={w.connectFirstBody} action={<LinkButton href={`/o/${org.slug}/github`} variant="primary">{w.goGithub}</LinkButton>} /></Card>;
   }
 
-  const urlError = touched ? validateRepositoryUrl(url) : null;
+  const urlError = touched && validateRepositoryUrl(url) ? t.validation.repositoryUrl : null;
   const finalName = name.trim() || slugify(url.split("/").slice(-1)[0]?.replace(/\.git$/, "") ?? "");
 
   // Manager only knows repositories it has synced from GitHub (webhooks or
@@ -80,26 +85,34 @@ export function TenantCreateWizard() {
   }
 
   return (
-    <div className="space-y-4">
-      <ol className="flex items-center gap-3 text-sm" aria-label="Progress">
-        <li aria-current={step === 1 ? "step" : undefined} className={step === 1 ? "font-semibold" : "text-muted"}>1. Repository</li>
-        <li aria-hidden className="text-subtle">/</li>
-        <li aria-current={step === 2 ? "step" : undefined} className={step === 2 ? "font-semibold" : "text-muted"}>2. Review</li>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="min-w-0 space-y-4">
+      <ol className="flex animate-enter items-center gap-2 text-sm" aria-label={w.progress}>
+        {[w.stepRepo, w.stepReview].map((label, i) => {
+          const n = (i + 1) as 1 | 2;
+          const done = step > n;
+          return (
+            <li key={label} aria-current={step === n ? "step" : undefined} className="flex items-center gap-2">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${done ? "bg-accent text-on-primary" : step === n ? "bg-foreground text-canvas" : "border border-border-strong text-subtle"}`}>{done ? <IconCheck size={12} strokeWidth={2.5} /> : n}</span>
+              <span className={step === n ? "font-medium" : "text-muted"}>{label}</span>
+              {n === 1 ? <span aria-hidden className="mx-1 h-px w-8 bg-border-strong" /> : null}
+            </li>
+          );
+        })}
       </ol>
       {step === 1 ? (
         <Card>
-          <CardHeader title="Choose a repository" description="Enter a repository the OpenFlows GitHub App can access." />
+          <CardHeader title={w.chooseRepo} description={w.chooseRepoBody} icon={<IconGithub size={15} />} />
           <div className="space-y-4 p-5">
             {picker && picker.length > 0 ? (
               <fieldset>
-                <legend className="mb-1.5 text-sm font-medium">Accessible repositories</legend>
+                <legend className="mb-1.5 text-sm font-medium">{w.accessible}</legend>
                 <ul className="divide-y divide-border rounded-lg border border-border">
                   {picker.map((r) => (
                     <li key={String(r.id)}>
-                      <label className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-surface-muted/60">
+                      <label className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-hover has-[:checked]:bg-accent-soft">
                         <input type="radio" name="repo" checked={url === `https://github.com/${r.full_name}`} onChange={() => { setUrl(`https://github.com/${r.full_name}`); setTouched(true); key.current = null; }} className="accent-[var(--accent)]" />
                         <span className="flex-1 font-mono text-sm">{r.full_name}</span>
-                        <span className="text-xs text-muted">{r.private ? "Private" : "Public"}</span>
                       </label>
                     </li>
                   ))}
@@ -108,53 +121,66 @@ export function TenantCreateWizard() {
               </fieldset>
             ) : (
             <div>
-              <label htmlFor="repo-url" className="mb-1.5 block text-sm font-medium">Repository URL</label>
-              <input id="repo-url" value={url} onChange={(e) => { setUrl(e.target.value); key.current = null; }} onBlur={() => setTouched(true)} placeholder="https://github.com/owner/repo" aria-invalid={!!urlError} className="h-10 w-full rounded-lg border border-border-strong bg-surface px-3 font-mono text-sm aria-[invalid=true]:border-danger" />
+              <label htmlFor="repo-url" className="mb-1.5 block text-sm font-medium">{w.repoUrl}</label>
+              <input id="repo-url" value={url} onChange={(e) => { setUrl(e.target.value); key.current = null; }} onBlur={() => setTouched(true)} placeholder="https://github.com/owner/repo" aria-invalid={!!urlError} className={`${inputClass} font-mono`} />
               {urlError ? <p className="mt-1.5 text-xs text-danger">{urlError}</p> : null}
             </div>
             )}
             <div className="flex flex-wrap gap-4">
               <div className="min-w-48 flex-1">
-                <label htmlFor="tenant-name" className="mb-1.5 block text-sm font-medium">Tenant name</label>
-                <input id="tenant-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={finalName || "backend"} className="h-10 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm" />
+                <label htmlFor="tenant-name" className="mb-1.5 block text-sm font-medium">{w.name}</label>
+                <input id="tenant-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={finalName || "backend"} className={inputClass} />
+                <p className="mt-1.5 text-xs text-muted">{w.nameHint}</p>
               </div>
               <div>
-                <label htmlFor="fleet" className="mb-1.5 block text-sm font-medium">Fleet size</label>
-                <input id="fleet" type="number" min={1} max={10} value={fleet} onChange={(e) => setFleet(Math.max(1, Number(e.target.value) || 1))} className="h-10 w-24 rounded-lg border border-border-strong bg-surface px-3 text-sm" />
+                <label htmlFor="fleet" className="mb-1.5 block text-sm font-medium">{w.fleet}</label>
+                <input id="fleet" type="number" min={1} max={10} value={fleet} onChange={(e) => setFleet(Math.max(1, Number(e.target.value) || 1))} className={`${inputClass} w-24`} />
+                <p className="mt-1.5 text-xs text-muted">{w.fleetHint}</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3 border-t border-border px-5 py-4">
-            <Button variant="primary" onClick={() => { setTouched(true); if (!validateRepositoryUrl(url) && finalName) setStep(2); }}>Continue</Button>
-            <Link href={`/o/${org.slug}/tenants`} className="text-sm text-muted hover:text-foreground">Cancel</Link>
+            <Button variant="primary" onClick={() => { setTouched(true); if (!validateRepositoryUrl(url) && finalName) setStep(2); }}>{t.common.continue}</Button>
+            <Link href={`/o/${org.slug}/tenants`} className="text-sm text-muted hover:text-foreground">{t.common.cancel}</Link>
           </div>
         </Card>
       ) : (
         <Card>
-          <CardHeader title="Review and create" description="OpenFlows will provision a runtime for this repository." />
+          <CardHeader title={w.review} description={w.reviewBody} />
           <dl className="divide-y divide-border text-sm">
-            <div className="flex justify-between px-5 py-3"><dt className="text-muted">Repository</dt><dd className="font-mono">{url.trim()}</dd></div>
-            <div className="flex justify-between px-5 py-3"><dt className="text-muted">Name</dt><dd>{finalName}</dd></div>
-            <div className="flex justify-between px-5 py-3"><dt className="text-muted">Fleet size</dt><dd>{fleet}</dd></div>
+            <div className="flex justify-between px-5 py-3"><dt className="text-muted">{w.repository}</dt><dd className="font-mono">{url.trim()}</dd></div>
+            <div className="flex justify-between px-5 py-3"><dt className="text-muted">{w.name}</dt><dd>{finalName}</dd></div>
+            <div className="flex justify-between px-5 py-3"><dt className="text-muted">{w.fleet}</dt><dd>{fleet}</dd></div>
           </dl>
           <div className="space-y-3 border-t border-border px-5 py-4">
             {error?.code === "RESOURCE_NOT_FOUND" ? (
               <div role="alert" className="space-y-3 rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm">
-                <p className="font-medium">OpenFlows cannot see this repository yet.</p>
-                <p className="text-muted">
-                  Check the address is correct and that the GitHub App is installed on that repository. If you just installed or changed access, sync the repository list and try again.
-                </p>
-                <Button variant="secondary" loading={syncing} onClick={() => void syncRepositories()}>Sync repositories</Button>
+                <p className="font-medium">{w.cannotSee}</p>
+                <p className="text-muted">{w.cannotSeeBody}</p>
+                <Button variant="secondary" loading={syncing} onClick={() => void syncRepositories()}>{w.sync}</Button>
               </div>
             ) : error ? <ErrorNotice error={error} /> : null}
-            {synced ? <p role="status" className="text-sm text-success">Repositories synced. Try creating the tenant again.</p> : null}
+            {synced ? <p role="status" className="text-sm text-success">{w.synced}</p> : null}
             <div className="flex items-center gap-3">
-              <Button variant="primary" loading={pending} onClick={() => void create()}>Create tenant</Button>
-              <Button variant="ghost" disabled={pending} onClick={() => setStep(1)}>Back</Button>
+              <Button variant="primary" loading={pending} onClick={() => void create()}>{w.create}</Button>
+              <Button variant="ghost" disabled={pending} onClick={() => setStep(1)}>{t.common.back}</Button>
             </div>
           </div>
         </Card>
       )}
+    </div>
+      <aside className="h-fit animate-enter rounded-xl border border-border bg-surface p-5 shadow-sm shadow-shadow">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent"><IconSparkles size={16} /></span>
+        <h2 className="mt-3 text-sm font-semibold">{w.whatHappens}</h2>
+        <ol className="mt-3 space-y-3">
+          {[w.whatHappens1, w.whatHappens2, w.whatHappens3].map((s, i) => (
+            <li key={s} className="flex gap-3 text-[13px] leading-relaxed text-muted">
+              <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong text-[11px] font-semibold text-foreground">{i + 1}</span>
+              {s}
+            </li>
+          ))}
+        </ol>
+      </aside>
     </div>
   );
 }

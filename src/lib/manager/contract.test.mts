@@ -8,6 +8,7 @@ import {
   canOperate,
   describeError,
   isOperationActive,
+  setupFailureMessage,
   slugify,
   tenantActions,
   tenantStateLabel,
@@ -26,7 +27,9 @@ test("tenant actions follow state and role", () => {
   assert.deepEqual(tenantActions({ observed_state: "running" }, "developer"), ["stop"]);
   assert.deepEqual(tenantActions({ observed_state: "paused" }, "developer"), ["start"]);
   assert.deepEqual(tenantActions({ observed_state: "failed" }, "admin"), ["start", "clean", "delete"]);
-  assert.deepEqual(tenantActions({ observed_state: "provisioning" }, "admin"), []);
+  assert.deepEqual(tenantActions({ observed_state: "provisioning" }, "admin"), ["delete"]);
+  assert.deepEqual(tenantActions({ observed_state: "provisioning" }, "developer"), []);
+  assert.deepEqual(tenantActions({ observed_state: "deleting" }, "admin"), []);
   assert.deepEqual(tenantActions({ observed_state: "running" }, "viewer"), []);
 });
 
@@ -52,4 +55,11 @@ test("validators", () => {
   assert.equal(validateRepositoryUrl("https://github.com/acme/api.git"), null);
   assert.ok(validateRepositoryUrl("http://github.com/acme/api"));
   assert.ok(validateRepositoryUrl("https://evil.example/acme/api"));
+});
+
+test("setup failures explain the cause in product language and never echo raw codes", () => {
+  assert.match(setupFailureMessage("CODER_ORG_FAILED"), /Coder/);
+  assert.match(setupFailureMessage("PROVISIONER_NOT_READY"), /provisioner/i);
+  assert.equal(setupFailureMessage(null), "Setup did not finish.");
+  assert.equal(setupFailureMessage("SOMETHING_NEW"), "Setup did not finish.");
 });

@@ -3,13 +3,18 @@ import type { Metadata } from "next";
 
 import { SettingsPanel } from "@/components/settings-panel";
 import { PageHeader } from "@/components/ui/primitives";
+import { getMessages } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getMessages();
+  return { title: t.settings.metaTitle };
+}
 
-export default function SettingsPage() {
+export default async function Page() {
+  const { t } = await getMessages();
   return (
     <>
-      <PageHeader title="Settings" description="Organisation details, your Coder identity and danger zone." />
+      <PageHeader title={t.settings.title} description={t.settings.description} />
       <SettingsPanel />
     </>
   );

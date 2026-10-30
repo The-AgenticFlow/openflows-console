@@ -18,6 +18,7 @@ import {
   type OperationAccepted,
   type Organization,
   type OrgSummary,
+  type PendingInvitation,
   type PlatformOverview,
   type Repository,
   type Role,
@@ -161,7 +162,9 @@ export const api = {
   startCoderLink: () => request<{ authorization_url: string }>("POST", "/auth/coder/start", {}),
   // Not served by Manager yet (UI degrades via isUnsupported)
   listOperations: (orgId: string) => request<CursorPage<Operation>>("GET", `${org(orgId)}/operations`),
-  listAudit: (orgId: string) => request<CursorPage<AuditEntry>>("GET", `${org(orgId)}/audit`),
+  listAudit: (orgId: string, after?: string) =>
+    request<CursorPage<AuditEntry>>("GET", `${org(orgId)}/audit?limit=50${after ? `&after=${encodeURIComponent(after)}` : ""}`),
+  listInvitations: (orgId: string) => request<{ items: PendingInvitation[] }>("GET", `${org(orgId)}/invitations`),
   listRepositories: (orgId: string, connectionId: string) =>
     request<{ items: Repository[] }>("GET", `${org(orgId)}/github/connections/${encodeURIComponent(connectionId)}/repositories`),
   getPlatformOverview: () => request<PlatformOverview>("GET", "/platform/overview"),

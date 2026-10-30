@@ -1,27 +1,49 @@
 @import "tailwindcss";
 
 /*
- * Dark, neutral design tokens (modelled on Coder's dashboard): near-black
- * canvas, slightly lifted panels with hairline borders, white primary actions,
- * and the logo's green/purple/orange kept for status and accents. Semantic
- * roles are exposed as Tailwind colours below (bg-surface, text-muted,
- * border-border…) so components never hard-code a colour.
+ * Design tokens, in a dark theme (default, Coder's zinc palette: flat
+ * near-black canvas and panels separated by hairline borders, white primary
+ * actions) and a light theme (paper-white canvas, soft grey panels, ink-black
+ * primary actions). The logo's green/purple stay as accent and status colours
+ * in both. Semantic roles are exposed as Tailwind colours below (bg-surface,
+ * text-muted, border-border, bg-hover…) so components never hard-code a colour.
+ *
+ * Theme selection: <html data-theme="light|dark"> forces a theme; with no
+ * attribute ("system") the OS preference decides. Any element can also carry
+ * data-theme="dark" to pin its subtree (the sign-in brand panel does).
+ *
+ * Motion is token-driven too: one easing curve and three durations, plus a
+ * small set of entrance keyframes (`animate-enter`, `animate-pop`,
+ * `animate-fade`). Everything collapses to instant under reduced motion.
  */
-:root {
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* Coder's dark palette (Tailwind zinc): a flat near-black page where cards
+     share the page colour and are separated by hairline borders. */
   --canvas: #09090b;
-  --surface: #101012;
+  --surface: #09090b;
+  --surface-raised: #111113;
   --surface-muted: #18181b;
   --foreground: #fafafa;
   --muted: #a1a1aa;
   --subtle: #71717a;
-  --border: #232327;
-  --border-strong: #34343a;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+  --hover: rgba(255, 255, 255, 0.04);
+  --hover-strong: rgba(255, 255, 255, 0.07);
+  --skeleton-hi: #27272a;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.62);
 
   --primary: #fafafa;
-  --primary-hover: #d4d4d8;
+  --primary-hover: #e4e4e7;
   --primary-soft: #1f1f23;
   --on-primary: #09090b;
   --accent: #4cb88a; /* logo green */
+  --accent-strong: #5fd3a1;
+  --accent-soft: rgba(76, 184, 138, 0.12);
+  --violet: #8b7cf6; /* logo purple */
 
   --success: #4ade80;
   --success-soft: rgba(74, 222, 128, 0.12);
@@ -32,12 +54,94 @@
   --info: #818cf8; /* logo purple, lightened */
   --info-soft: rgba(129, 140, 248, 0.14);
 
-  --ring: #a1a1aa;
+  --ring: #4cb88a;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 420ms;
+}
+
+/* Light theme values, shared by the explicit attribute and the OS preference. */
+[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #f7f7f8;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #f1f1f3;
+  --foreground: #111114;
+  --muted: #5b5b66;
+  --subtle: #8a8a95;
+  --border: #e6e6ea;
+  --border-strong: #d4d4da;
+  --hover: rgba(17, 17, 20, 0.035);
+  --hover-strong: rgba(17, 17, 20, 0.06);
+  --skeleton-hi: #e9e9ed;
+  --shadow: rgba(17, 17, 20, 0.08);
+  --overlay: rgba(17, 17, 20, 0.45);
+
+  --primary: #111114;
+  --primary-hover: #2a2a31;
+  --primary-soft: #ededf0;
+  --on-primary: #ffffff;
+  --accent: #23905f;
+  --accent-strong: #1c7a50;
+  --accent-soft: rgba(35, 144, 95, 0.1);
+  --violet: #6d5ce7;
+
+  --success: #15803d;
+  --success-soft: rgba(21, 128, 61, 0.1);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.1);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --info: #4f46e5;
+  --info-soft: rgba(79, 70, 229, 0.08);
+
+  --ring: #23905f;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --canvas: #f7f7f8;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-muted: #f1f1f3;
+    --foreground: #111114;
+    --muted: #5b5b66;
+    --subtle: #8a8a95;
+    --border: #e6e6ea;
+    --border-strong: #d4d4da;
+    --hover: rgba(17, 17, 20, 0.035);
+    --hover-strong: rgba(17, 17, 20, 0.06);
+    --skeleton-hi: #e9e9ed;
+    --shadow: rgba(17, 17, 20, 0.08);
+    --overlay: rgba(17, 17, 20, 0.45);
+    --primary: #111114;
+    --primary-hover: #2a2a31;
+    --primary-soft: #ededf0;
+    --on-primary: #ffffff;
+    --accent: #23905f;
+    --accent-strong: #1c7a50;
+    --accent-soft: rgba(35, 144, 95, 0.1);
+    --violet: #6d5ce7;
+    --success: #15803d;
+    --success-soft: rgba(21, 128, 61, 0.1);
+    --warning: #b45309;
+    --warning-soft: rgba(180, 83, 9, 0.1);
+    --danger: #dc2626;
+    --danger-soft: rgba(220, 38, 38, 0.08);
+    --info: #4f46e5;
+    --info-soft: rgba(79, 70, 229, 0.08);
+    --ring: #23905f;
+  }
 }
 
 @theme inline {
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
@@ -48,6 +152,13 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
   --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-hover: var(--hover);
+  --color-hover-strong: var(--hover-strong);
+  --color-shadow: var(--shadow);
+  --color-overlay: var(--overlay);
+  --color-accent-soft: var(--accent-soft);
+  --color-violet: var(--violet);
   --color-on-primary: var(--on-primary);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
@@ -59,10 +170,37 @@
   --color-info-soft: var(--info-soft);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
+
+  --ease-out-soft: var(--ease-out);
+  --animate-enter: enter var(--dur-slow) var(--ease-out) both;
+  --animate-pop: pop var(--dur-base) var(--ease-out) both;
+  --animate-fade: fade var(--dur-slow) var(--ease-out) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 
 html {
-  color-scheme: dark;
+  transition: background-color var(--dur-base) ease;
 }
 
 body {
@@ -71,6 +209,12 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--foreground);
 }
 
 :focus-visible {
@@ -79,9 +223,57 @@ body {
   border-radius: 6px;
 }
 
+/* Form fields share one focus treatment (accent border + soft halo) so every
+   form in the Console reacts the same way without per-field classes. */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(76, 184, 138, 0.15);
+  }
+}
+
+/* Thin, quiet scrollbars that match the surfaces. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* Native <dialog> entrance: fade the backdrop, lift the panel. */
+dialog[open] {
+  animation: pop var(--dur-base) var(--ease-out) both;
+}
+dialog[open]::backdrop {
+  animation: fade var(--dur-base) var(--ease-out) both;
+  backdrop-filter: blur(4px);
+}
+
+/* Stagger children of `.stagger` by index (set via style="--i: n"). */
+.stagger > * {
+  animation: enter var(--dur-slow) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+/* Subtle dotted grid used behind hero areas. */
+.bg-grid {
+  background-image: radial-gradient(var(--hover-strong) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
 }

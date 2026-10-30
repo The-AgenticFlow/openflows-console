@@ -3,13 +3,18 @@ import type { Metadata } from "next";
 
 import { ActivityView } from "@/components/activity-view";
 import { PageHeader } from "@/components/ui/primitives";
+import { getMessages } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Activity" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getMessages();
+  return { title: t.activity.metaTitle };
+}
 
-export default function ActivityPage() {
+export default async function Page() {
+  const { t } = await getMessages();
   return (
     <>
-      <PageHeader title="Activity" description="Operations and audit history for this organisation." />
+      <PageHeader title={t.activity.title} description={t.activity.description} />
       <ActivityView />
     </>
   );
