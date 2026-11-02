@@ -3,10 +3,13 @@
 // explanation, whether it can be retried, and the retry action. Polls via
 // useOperation until the operation is terminal. Manager exposes `current_step`
 // and `error_code` only (no per-stage list), so that is all we render. Text
-// follows the active language; known error codes are translated.
+// follows the active language; known error codes are translated. When the
+// operation finishes, every cached organisation query is refreshed so tenant
+// state, badges and actions reflect the result without a reload.
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 
 import { api, type ConsoleError } from "@/lib/client/api";
 import { keys, useOperation } from "@/lib/client/queries";
@@ -24,6 +27,14 @@ const human = (s: string) => s.replace(/[._]/g, " ");
 export function OperationProgress({ operationId, canRetry }: Readonly<{ operationId: string; canRetry: boolean }>) {
   const { data: op, error, isPending, refetch } = useOperation(operationId);
   const qc = useQueryClient();
+  // Refresh tenant/org data once, when the operation moves from active to done.
+  const wasActive = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!op) return;
+    const active = isOperationActive(op.state);
+    if (wasActive.current && !active) void qc.invalidateQueries({ queryKey: ["org"] });
+    wasActive.current = active;
+  }, [op, qc]);
   const retry = useMutation({
     mutationFn: () => api.retryOperation(operationId),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.operation(operationId) }),
@@ -51,7 +62,7 @@ export function OperationView({ op, canRetry, onRetry, retrying, retryError }: R
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium capitalize">{human(op.kind)}</p>
           <p className="text-xs text-muted">
-            {active ? (op.current_step ? t.operation.step(human(op.current_step)) : t.operation.waiting) : failed ? t.operation.didNotComplete : t.operation.completed}
+            {active ? (op.current_step ? t.operation.step(human(op.current_step)) : op.state === "running" ? t.operation.inProgress : t.operation.waiting) : failed ? t.operation.didNotComplete : t.operation.completed}
             {op.attempt_count > 1 ? ` · ${t.operation.attempt(op.attempt_count)}` : ""}
           </p>
         </div>

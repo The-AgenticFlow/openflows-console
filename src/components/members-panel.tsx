@@ -50,7 +50,7 @@ export function MembersPanel() {
   const invite = useMemberMutation(orgId, (v: { login: string; role: Role }) => api.invite(orgId, v.login, v.role));
   const qc = useQueryClient();
   const refreshInvitations = () => void qc.invalidateQueries({ queryKey: keys.invitations(orgId) });
-  const revoke = useMutation({ mutationFn: (id: string) => api.revokeInvitation(orgId, id), onSuccess: refreshInvitations });
+  const revoke = useMutation({ mutationFn: (id: string) => api.revokeInvitation(orgId, id), onSuccess: (_, id) => { refreshInvitations(); if (created?.invitation_id === id) setCreated(null); } });
   const setRole = useMemberMutation(orgId, (v: { userId: string; role: Role }) => api.updateMember(orgId, v.userId, { role: v.role }));
   const remove = useMemberMutation(orgId, (userId: string) => api.removeMember(orgId, userId));
   const transfer = useMemberMutation(orgId, (id: string) => api.transferOwnership(orgId, id));
@@ -205,7 +205,7 @@ export function MembersPanel() {
                     <input readOnly aria-label={t.members.linkLabel} value={created.invitation_url} onFocus={(e) => e.currentTarget.select()} className="h-9 min-w-0 flex-1 rounded-lg border border-border-strong bg-surface px-3 font-mono text-xs" />
                     <CopyButton value={created.invitation_url} label={t.members.linkLabel} />
                   </div>
-                  <p className="text-xs text-muted">{t.members.linkExpires(Math.round(created.expires_in_seconds / 3600))}</p>
+                  <p className="text-xs text-muted">{t.members.linkExpires(Math.max(1, Math.round(created.expires_in_seconds / 86400)))}</p>
                 </div>
               ) : null}
             </Card>

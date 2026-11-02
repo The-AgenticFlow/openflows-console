@@ -11,7 +11,7 @@ import { useState } from "react";
 
 import type { ConsoleError } from "@/lib/client/api";
 import { useTenant, useTenantStatus } from "@/lib/client/queries";
-import { canOperate, type TenantAction } from "@/lib/manager/contract";
+import { canOperate, isOperationActive, type TenantAction } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
 import { OperationProgress } from "./operation-progress";
@@ -69,7 +69,7 @@ export function TenantDetail({ tenantId }: Readonly<{ tenantId: string }>) {
               <p className="mt-1 text-sm text-muted">{org.display_name} · <span className="font-mono text-xs">{tn.id.slice(0, 8)}</span></p>
             </div>
           </div>
-          <TenantActions tenant={tn} onStarted={(id) => setStarted(id)} />
+          <TenantActions tenant={tn} busy={!!status.data?.latest_operation && isOperationActive(status.data.latest_operation.state)} onStarted={(id) => setStarted(id)} />
         </div>
       </section>
 

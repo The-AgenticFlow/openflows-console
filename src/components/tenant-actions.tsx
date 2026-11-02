@@ -3,7 +3,10 @@
 // its refusals are shown inline. Actions with consequences go through
 // ConfirmDialog with the effect spelled out; delete also requires typing the
 // tenant name. Mutations return an accepted operation, reported via onStarted.
-// Labels and effects follow the active language.
+// Labels and effects follow the active language. While an operation on the
+// tenant is still running (`busy`), the buttons are disabled so a second action
+// cannot be queued behind it; Delete stays available so a stuck tenant can
+// always be removed.
 "use client";
 
 import { useState } from "react";
@@ -22,7 +25,7 @@ import { ErrorNotice } from "./ui/primitives";
 
 const ACTION_ICON: Partial<Record<TenantAction, typeof IconPlay>> = { start: IconPlay, clean: IconRefresh, delete: IconX };
 
-export function TenantActions({ tenant, onStarted }: Readonly<{ tenant: Tenant; onStarted: (operationId: string, action: TenantAction) => void }>) {
+export function TenantActions({ tenant, busy = false, onStarted }: Readonly<{ tenant: Tenant; busy?: boolean; onStarted: (operationId: string, action: TenantAction) => void }>) {
   const { orgId, role } = useConsole();
   const { t } = useT();
   const run = useTenantAction(orgId, tenant.id);
@@ -45,6 +48,7 @@ export function TenantActions({ tenant, onStarted }: Readonly<{ tenant: Tenant; 
               key={a}
               variant={a === "delete" ? "danger" : a === "start" ? "primary" : "secondary"}
               loading={run.isPending && run.variables === a && !ACTION_RULES[a].confirm}
+              disabled={busy && a !== "delete"}
               onClick={() => { if (ACTION_RULES[a].confirm) { run.reset(); setPending(a); } else exec(a); }}
             >
               {Icon ? <Icon size={14} /> : null}

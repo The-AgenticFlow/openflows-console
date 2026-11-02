@@ -92,8 +92,8 @@ function AuditTab() {
               <tr key={e.id} className="transition-colors hover:bg-hover">
                 <td className="whitespace-nowrap px-5 py-3 text-muted" title={formatDateTime(e.occurred_at, locale)}>{relativeTime(e.occurred_at, locale, t)}</td>
                 <td className="px-3 py-3">{e.actor_name ?? (e.actor_type === "user" ? a.unknownUser : e.actor_type)}</td>
-                <td className="px-3 py-3 font-mono text-xs">{e.action}</td>
-                <td className="px-3 py-3">{e.resource_type ? <>{e.resource_type}{e.resource_id ? <span className="ml-1 font-mono text-xs text-muted" title={e.resource_id}>{e.resource_id.slice(0, 8)}</span> : null}</> : <span className="text-muted">—</span>}</td>
+                <td className="px-3 py-3" title={e.action}>{t.audit[e.action] ?? e.action.replace(/[._]/g, " ")}</td>
+                <td className="px-3 py-3">{e.resource_type ? <>{t.resources[e.resource_type] ?? e.resource_type.replace(/_/g, " ")}{e.resource_id ? <span className="ml-1 font-mono text-xs text-muted" title={e.resource_id}>{e.resource_id.slice(0, 8)}</span> : null}</> : <span className="text-muted">—</span>}</td>
                 <td className="px-3 py-3"><Badge dot tone={e.result === "success" ? "success" : "danger"}>{e.result}</Badge></td>
                 <td className="px-5 py-3 font-mono text-xs text-muted" title={e.request_id ?? undefined}>{e.request_id ? `${e.request_id.slice(0, 12)}…` : "—"}</td>
               </tr>

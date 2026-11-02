@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { api, ConsoleError } from "@/lib/client/api";
-import { useConnections, useRepositories } from "@/lib/client/queries";
+import { useConnections, useRepositories, useTenants } from "@/lib/client/queries";
 import { canOperate, slugify, validateRepositoryUrl } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
@@ -28,6 +28,7 @@ export function TenantCreateWizard() {
   const { t } = useT();
   const w = t.wizard;
   const conns = useConnections(orgId);
+  const tenants = useTenants(orgId);
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [fleet, setFleet] = useState(1);
@@ -108,14 +109,19 @@ export function TenantCreateWizard() {
               <fieldset>
                 <legend className="mb-1.5 text-sm font-medium">{w.accessible}</legend>
                 <ul className="divide-y divide-border rounded-lg border border-border">
-                  {picker.map((r) => (
-                    <li key={String(r.id)}>
-                      <label className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-hover has-[:checked]:bg-accent-soft">
-                        <input type="radio" name="repo" checked={url === `https://github.com/${r.full_name}`} onChange={() => { setUrl(`https://github.com/${r.full_name}`); setTouched(true); key.current = null; }} className="accent-[var(--accent)]" />
-                        <span className="flex-1 font-mono text-sm">{r.full_name}</span>
-                      </label>
-                    </li>
-                  ))}
+                  {picker.map((r) => {
+                    // A repository already bound to a tenant cannot take another one.
+                    const usedBy = tenants.data?.items.find((x) => String(x.github_repository_id) === String(r.id) && x.desired_state !== "deleted");
+                    return (
+                      <li key={String(r.id)}>
+                        <label className={`flex items-center gap-3 px-4 py-3 transition-colors ${usedBy ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-hover has-[:checked]:bg-accent-soft"}`}>
+                          <input type="radio" name="repo" disabled={!!usedBy} checked={url === `https://github.com/${r.full_name}`} onChange={() => { setUrl(`https://github.com/${r.full_name}`); setTouched(true); key.current = null; }} className="accent-[var(--accent)]" />
+                          <span className="flex-1 font-mono text-sm">{r.full_name}</span>
+                          {usedBy ? <span className="text-xs text-muted">{w.inUse(usedBy.slug)}</span> : null}
+                        </label>
+                      </li>
+                    );
+                  })}
                 </ul>
                 {urlError ? <p className="mt-1.5 text-xs text-danger">{urlError}</p> : null}
               </fieldset>
