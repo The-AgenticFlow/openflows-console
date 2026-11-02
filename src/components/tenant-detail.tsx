@@ -3,23 +3,26 @@
 // workspaces); the latest operation (progress or failure recovery, from
 // Manager's tenant status endpoint so it survives reloads); the runtime
 // workspaces by state; identifiers to share with support; and a plain
-// explanation of each lifecycle action. A tenant that no longer exists (e.g.
+// explanation of each lifecycle action. Runtime health (is the agent runtime
+// actually checking in?) has its own section with a Restart for silent
+// runtimes, and a badge next to the state. A tenant that no longer exists (e.g.
 // just deleted) shows a friendly terminal state, not an error.
 "use client";
 
 import { useState } from "react";
 
 import type { ConsoleError } from "@/lib/client/api";
-import { useTenant, useTenantStatus } from "@/lib/client/queries";
+import { useRepositoryNames, useTenant, useTenantStatus } from "@/lib/client/queries";
 import { canOperate, isOperationActive, type TenantAction } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
 import { OperationProgress } from "./operation-progress";
+import { RuntimeHealthBadge, RuntimeHealthCard } from "./runtime-health";
 import { useConsole } from "./shell/console-context";
 import { TenantActions } from "./tenant-actions";
 import { StateBadge, useStateName } from "./tenant-status";
 import { LinkButton } from "./ui/button";
-import { IconActivity, IconBoxes, IconCircleDot, IconInfo, IconPlay, IconTerminal } from "./ui/icons";
+import { IconActivity, IconBoxes, IconCircleDot, IconGithub, IconInfo, IconPlay, IconTerminal } from "./ui/icons";
 import { Card, CardHeader, EmptyState, ErrorNotice, Field, Skeleton, StatCard } from "./ui/primitives";
 
 const ACTIONS: TenantAction[] = ["start", "stop", "clean", "delete"];
@@ -30,6 +33,7 @@ export function TenantDetail({ tenantId }: Readonly<{ tenantId: string }>) {
   const stateName = useStateName();
   const tenant = useTenant(orgId, tenantId);
   const status = useTenantStatus(orgId, tenantId);
+  const repoNames = useRepositoryNames(orgId);
   const [started, setStarted] = useState<string | null>(null);
   const listHref = `/o/${org.slug}/tenants`;
 
@@ -53,6 +57,7 @@ export function TenantDetail({ tenantId }: Readonly<{ tenantId: string }>) {
   const operationId = started ?? status.data?.latest_operation?.id ?? null;
   const workspaces = status.data?.workspaces ?? [];
   const totalWorkspaces = workspaces.reduce((n, w) => n + w.count, 0);
+  const repoName = repoNames.get(String(tn.github_repository_id));
 
   return (
     <div className="space-y-6">
@@ -65,8 +70,17 @@ export function TenantDetail({ tenantId }: Readonly<{ tenantId: string }>) {
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-semibold tracking-tight">{tn.slug}</h1>
                 <StateBadge tenant={tn} />
+                {tn.observed_state === "running" ? <RuntimeHealthBadge runtime={status.data?.runtime} /> : null}
               </div>
-              <p className="mt-1 text-sm text-muted">{org.display_name} · <span className="font-mono text-xs">{tn.id.slice(0, 8)}</span></p>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
+                {repoName ? (
+                  <a href={`https://github.com/${repoName}`} target="_blank" rel="noopener noreferrer" title={t.tenant.openOnGithub} className="inline-flex items-center gap-1.5 font-mono text-[13px] text-foreground hover:underline">
+                    <IconGithub size={14} /> {repoName}
+                  </a>
+                ) : null}
+                <span>{org.display_name}</span>
+                <span className="font-mono text-xs">{tn.id.slice(0, 8)}</span>
+              </p>
             </div>
           </div>
           <TenantActions tenant={tn} busy={!!status.data?.latest_operation && isOperationActive(status.data.latest_operation.state)} onStarted={(id) => setStarted(id)} />
@@ -82,6 +96,7 @@ export function TenantDetail({ tenantId }: Readonly<{ tenantId: string }>) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-6">
+          {tn.observed_state === "running" ? <RuntimeHealthCard tenantId={tn.id} runtime={status.data?.runtime} /> : null}
           {operationId ? (
             <Card>
               <CardHeader title={t.tenant.latestOperation} description={t.tenant.latestOperationBody} icon={<IconActivity size={15} />} />
@@ -111,6 +126,7 @@ export function TenantDetail({ tenantId }: Readonly<{ tenantId: string }>) {
             <CardHeader title={t.tenant.details} description={t.tenant.detailsBody} icon={<IconInfo size={15} />} />
             <dl className="divide-y divide-border px-5 py-4">
               <Field label={t.tenant.tenantId} copy={tn.id} mono>{tn.id.slice(0, 13)}…</Field>
+              {repoName ? <Field label={t.tenant.repository} mono>{repoName}</Field> : null}
               <Field label={t.tenant.repositoryId} copy={String(tn.github_repository_id)} mono>{String(tn.github_repository_id)}</Field>
               <Field label={t.tenant.organisation}>{org.display_name}</Field>
             </dl>

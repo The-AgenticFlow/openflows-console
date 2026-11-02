@@ -19,6 +19,7 @@ import { Button, LinkButton } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { IconUser } from "./ui/icons";
 import { Badge, ErrorNotice, Field, inputClass, SettingsSection } from "./ui/primitives";
+import { useToast } from "./ui/toast";
 
 function nameProblem(name: string): "orgNameShort" | "orgNameLong" | "orgNameChars" | null {
   const v = name.trim();
@@ -33,12 +34,13 @@ export function SettingsPanel() {
   const { t } = useT();
   const admin = canAdminister(role);
   const router = useRouter();
+  const toast = useToast();
   const [name, setName] = useState(org.display_name);
   const [saved, setSaved] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const problem = nameProblem(name);
 
-  const rename = useMutation({ mutationFn: () => api.updateOrganization(orgId, name.trim()), onSuccess: () => { setSaved(true); router.refresh(); } });
+  const rename = useMutation({ mutationFn: () => api.updateOrganization(orgId, name.trim()), onSuccess: () => { setSaved(true); toast.show({ kind: "success", title: t.toasts.saved }); router.refresh(); } });
   const del = useMutation({ mutationFn: () => api.deleteOrganization(orgId), onSuccess: () => { setConfirm(false); router.push("/"); router.refresh(); } });
   const statusTone = org.status === "ready" || org.status === "active" ? "success" : org.status === "provisioning" ? "info" : "warning";
 

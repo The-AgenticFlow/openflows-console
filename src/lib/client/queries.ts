@@ -65,12 +65,32 @@ export const useAudit = (orgId: string) =>
   });
 export const useInvitations = (orgId: string, enabled: boolean) =>
   useQuery({ queryKey: keys.invitations(orgId), queryFn: () => api.listInvitations(orgId), enabled, retry: false });
+/** Operation history, newest first, paged; polls while anything is still running. */
 export const useOperations = (orgId: string) =>
-  useQuery({ queryKey: ["org", orgId, "operations"], queryFn: () => api.listOperations(orgId), retry: false });
+  useInfiniteQuery({
+    queryKey: ["org", orgId, "operations"],
+    queryFn: ({ pageParam }) => api.listOperations(orgId, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+    retry: false,
+    refetchInterval: (q) => (q.state.data?.pages[0]?.items.some((o) => isOperationActive(o.state)) ? 3000 : false),
+  });
 export const useRepositories = (orgId: string, connectionId: string | undefined) =>
   useQuery({ queryKey: ["org", orgId, "repos", connectionId], queryFn: () => api.listRepositories(orgId, connectionId!), enabled: !!connectionId, retry: false });
 export const usePlatformOverview = () =>
   useQuery({ queryKey: ["platform", "overview"], queryFn: () => api.getPlatformOverview(), retry: false, refetchInterval: 15_000 });
+
+/**
+ * GitHub repository id -> "owner/name" for the organisation's active
+ * connection, so tenants (which Manager returns with a repository id only) can
+ * be labelled by name. Empty until the list loads or when unavailable.
+ */
+export function useRepositoryNames(orgId: string): Map<string, string> {
+  const conns = useConnections(orgId);
+  const active = conns.data?.items.find((c) => c.status === "active")?.id;
+  const repos = useRepositories(orgId, active);
+  return new Map((repos.data?.items ?? []).map((r) => [String(r.id), r.full_name]));
+}
 
 /** Latest operation per tenant (via Manager's tenant status endpoint), for dashboard activity. */
 export function useTenantActivity(orgId: string, tenantIds: string[]) {

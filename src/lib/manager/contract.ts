@@ -101,6 +101,22 @@ export interface Operation {
   error_code: string | null;
 }
 
+/** One row of `GET /organizations/{org}/operations` (newest first). */
+export interface OperationListItem {
+  id: string;
+  kind: string;
+  state: string;
+  current_step: string | null;
+  attempt_count: number;
+  error_code: string | null;
+  resource_type: string;
+  resource_id: string | null;
+  /** Tenant slug for tenant operations. */
+  resource_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Tenant {
   id: string;
   organization_id: string;
@@ -115,7 +131,26 @@ export interface TenantStatus {
   tenant_id: string;
   workspaces: { state: string; count: number }[];
   latest_operation: { id: string; state: string; error_code: string | null } | null;
+  /** Liveness of the tenant's Nexus runtime; absent on older Managers. */
+  runtime?: RuntimeStatus | null;
 }
+
+/**
+ * Manager's verdict on the Nexus runtime's check-ins: `healthy` (heartbeat in
+ * the last two minutes), `starting` (not registered yet), `unresponsive`
+ * (silent but may recover), `restart_required` (silent and can no longer
+ * re-authenticate; stop and start the tenant), `inactive` (not running).
+ */
+export type RuntimeHealth = "inactive" | "starting" | "healthy" | "unresponsive" | "restart_required";
+export interface RuntimeStatus {
+  health: RuntimeHealth;
+  registered_at: string | null;
+  last_heartbeat_at: string | null;
+}
+
+/** True when a running tenant's runtime is not answering. */
+export const runtimeNeedsAttention = (r: RuntimeStatus | null | undefined) =>
+  !!r && (r.health === "unresponsive" || r.health === "restart_required");
 
 export interface GithubConnection {
   id: string;

@@ -10,7 +10,7 @@ import { PlatformOverview } from "@/components/platform-overview";
 import { Logo } from "@/components/ui/logo";
 import { PageHeader } from "@/components/ui/primitives";
 import { getMessages } from "@/lib/i18n/server";
-import { getConsoleSession, UnauthenticatedError } from "@/lib/server/manager";
+import { getConsoleSession, signInPath, UnauthenticatedError } from "@/lib/server/manager";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getMessages();
@@ -22,7 +22,7 @@ export default async function PlatformPage() {
   try {
     session = await getConsoleSession();
   } catch (e) {
-    if (e instanceof UnauthenticatedError) redirect("/login");
+    if (e instanceof UnauthenticatedError) redirect(await signInPath());
     throw e;
   }
   const first = session.orgs[0];

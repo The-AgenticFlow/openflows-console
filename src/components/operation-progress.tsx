@@ -20,6 +20,7 @@ import { useT } from "@/lib/preferences/client";
 import { Button, Spinner } from "./ui/button";
 import { IconCheck, IconRefresh } from "./ui/icons";
 import { Badge, CopyButton, ErrorNotice, Skeleton } from "./ui/primitives";
+import { useToast } from "./ui/toast";
 
 const TONE = { queued: "neutral", running: "info", succeeded: "success", failed: "danger" } as const;
 const human = (s: string) => s.replace(/[._]/g, " ");
@@ -27,14 +28,21 @@ const human = (s: string) => s.replace(/[._]/g, " ");
 export function OperationProgress({ operationId, canRetry }: Readonly<{ operationId: string; canRetry: boolean }>) {
   const { data: op, error, isPending, refetch } = useOperation(operationId);
   const qc = useQueryClient();
+  const { t } = useT();
+  const toast = useToast();
   // Refresh tenant/org data once, when the operation moves from active to done.
   const wasActive = useRef<boolean | null>(null);
   useEffect(() => {
     if (!op) return;
     const active = isOperationActive(op.state);
-    if (wasActive.current && !active) void qc.invalidateQueries({ queryKey: ["org"] });
+    if (wasActive.current && !active) {
+      void qc.invalidateQueries({ queryKey: ["org"] });
+      // Only for operations watched finishing on this page, never on page load.
+      const label = t.operations.kinds[op.kind] ?? op.kind.replace(/[._]/g, " ");
+      toast.show(op.state === "succeeded" ? { kind: "success", title: t.toasts.actionDone(label) } : { kind: "error", title: t.toasts.actionFailed(label) });
+    }
     wasActive.current = active;
-  }, [op, qc]);
+  }, [op, qc, t, toast]);
   const retry = useMutation({
     mutationFn: () => api.retryOperation(operationId),
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.operation(operationId) }),

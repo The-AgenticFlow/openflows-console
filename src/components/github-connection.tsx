@@ -22,6 +22,7 @@ import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { IconGithub, IconLock, IconRefresh } from "./ui/icons";
 import { Badge, Card, CardHeader, EmptyState, ErrorNotice, NotAvailable, Skeleton } from "./ui/primitives";
+import { useToast } from "./ui/toast";
 
 const TONE: Record<string, "neutral" | "info" | "success" | "warning" | "danger"> = {
   active: "success", pending: "info", verified: "info", suspended: "warning", disconnected: "danger",
@@ -36,7 +37,13 @@ export function GithubConnection({ justConnected }: Readonly<{ justConnected: bo
   const { data, error, isPending, refetch } = useConnections(orgId);
   const [redirecting, setRedirecting] = useState(false);
   const [confirm, setConfirm] = useState<Connection | null>(null);
-  const refresh = () => void qc.invalidateQueries({ queryKey: keys.connections(orgId) });
+  const toast = useToast();
+  // A sync updates both the connection and its repository list (dates, new or
+  // removed repositories), so refresh both, now and again once GitHub answered.
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: keys.connections(orgId) });
+    void qc.invalidateQueries({ queryKey: ["org", orgId, "repos"] });
+  };
 
   const connect = useMutation({
     mutationFn: () => api.startConnect(orgId),
@@ -49,8 +56,8 @@ export function GithubConnection({ justConnected }: Readonly<{ justConnected: bo
       window.location.assign(next); // full navigation to GitHub
     },
   });
-  const reconcile = useMutation({ mutationFn: (id: string) => api.reconcileConnection(orgId, id), onSuccess: () => { refresh(); setTimeout(refresh, 4000); } });
-  const disconnect = useMutation({ mutationFn: (id: string) => api.disconnectConnection(orgId, id), onSuccess: () => { refresh(); setConfirm(null); } });
+  const reconcile = useMutation({ mutationFn: (id: string) => api.reconcileConnection(orgId, id), onSuccess: () => { refresh(); toast.show({ kind: "info", title: t.toasts.syncRequested, body: t.toasts.syncRequestedBody }); setTimeout(refresh, 4000); } });
+  const disconnect = useMutation({ mutationFn: (id: string) => api.disconnectConnection(orgId, id), onSuccess: () => { refresh(); toast.show({ kind: "success", title: t.toasts.disconnected }); setConfirm(null); } });
 
   if (isPending) return <Card><div className="space-y-3 p-5" aria-busy="true"><Skeleton className="h-5 w-40" /><Skeleton className="h-4 w-2/3" /></div></Card>;
   if (error) return <ErrorNotice error={error as ConsoleError} onRetry={() => void refetch()} />;

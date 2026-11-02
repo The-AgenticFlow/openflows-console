@@ -10,6 +10,19 @@ import type { CursorPage, Me, OrgSummary } from "../manager/contract";
 
 export class UnauthenticatedError extends Error {}
 
+/** Manager's browser session cookie (see Manager `routes/auth.rs`). */
+const SESSION_COOKIE = "of_session";
+
+/**
+ * Where to send a visitor Manager no longer recognises: the sign-in page,
+ * flagged "session expired" when they still carry a session cookie (a session
+ * that ran out, such as Manager's 12-hour limit), so the page can say why.
+ */
+export async function signInPath(): Promise<string> {
+  const jar = await cookies();
+  return jar.has(SESSION_COOKIE) ? "/login?expired=1" : "/login";
+}
+
 async function get<T>(path: string): Promise<T> {
   const jar = await cookies();
   const cookie = jar.getAll().map((c) => `${c.name}=${c.value}`).join("; ");

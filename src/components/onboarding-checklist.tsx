@@ -28,7 +28,7 @@ export function OnboardingChecklist() {
 
   const steps: Step[] = [
     { title: c.signIn, detail: c.signInDone, done: true },
-    { title: c.createOrg, detail: c.createOrgDone(org.display_name), done: true },
+    { title: c.createOrg, detail: org.status === "ready" || org.status === "active" ? c.createOrgDone(org.display_name) : c.createOrgPending(org.display_name), done: true },
     {
       title: c.installApp,
       detail: canAdminister(role) ? c.installAppAdmin : c.installAppOther,

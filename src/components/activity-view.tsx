@@ -1,9 +1,10 @@
 // ActivityView: operations and audit history for the organisation, in tabs.
 // The audit log reads Manager's paged audit endpoint (admins only, newest
-// first). Manager has no operations list yet, so operations fall back to the
-// latest operation per tenant (real data from the tenant status endpoint);
-// an older Manager without audit reads shows an explicit "not available" state
-// rather than invented entries. Text and times follow the active language.
+// first). Operations read Manager's paged operation history (newest first,
+// filterable by in-progress / failed, polling while anything runs); an older
+// Manager without that endpoint falls back to the latest operation per tenant
+// (real data from the tenant status endpoint), and one without audit reads
+// shows an explicit "not available" state rather than invented entries. Text and times follow the active language.
 "use client";
 
 import Link from "next/link";
@@ -22,33 +23,71 @@ import { Badge, Card, EmptyState, ErrorNotice, NotAvailable, Skeleton } from "./
 
 const TONE = (s: string) => (s === "succeeded" ? "success" : isOperationActive(s) ? "info" : "danger") as "success" | "info" | "danger";
 
+type OpFilter = "all" | "active" | "failed";
+const FAILED_STATES = ["failed", "retryable_failed", "cancelled"];
+
 function OperationsTab() {
   const { org, orgId } = useConsole();
-  const { t } = useT();
+  const { t, locale } = useT();
   const a = t.activity;
+  const o = t.operations;
   const ops = useOperations(orgId);
   const tenants = useTenants(orgId);
-  const list = isUnsupported(ops.error);
+  const legacy = isUnsupported(ops.error);
   const items = tenants.data?.items ?? [];
-  const derived = useTenantActivity(orgId, list ? items.map((t) => t.id) : []);
+  const derived = useTenantActivity(orgId, legacy ? items.map((x) => x.id) : []);
+  const [filter, setFilter] = useState<OpFilter>("all");
 
   if (ops.isPending) return <Card><div className="space-y-3 p-5">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-5" />)}</div></Card>;
-  if (ops.error && !list) return <ErrorNotice error={ops.error as ConsoleError} onRetry={() => void ops.refetch()} />;
+  if (ops.error && !legacy) return <ErrorNotice error={ops.error as ConsoleError} onRetry={() => void ops.refetch()} />;
 
-  if (!list && ops.data) {
+  if (!legacy && ops.data) {
+    const all = ops.data.pages.flatMap((p) => p.items);
+    const rows = all.filter((op) => filter === "all" || (filter === "active" ? isOperationActive(op.state) : FAILED_STATES.includes(op.state)));
+    const filters: [OpFilter, string][] = [["all", o.filterAll], ["active", o.filterActive], ["failed", o.filterFailed]];
     return (
-      <Card>
-        {ops.data.items.length === 0 ? <EmptyState icon={<IconActivity size={18} />} title={a.noOperations} description={a.noOperationsBody} /> : (
-          <ol className="divide-y divide-border">
-            {ops.data.items.map((op) => (
-              <li key={op.id} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="min-w-0 flex-1"><Link href={`/o/${org.slug}/operations/${op.id}`} className="text-sm font-medium capitalize hover:underline">{op.kind.replace(/[._]/g, " ")}</Link><p className="text-xs text-muted">{op.current_step?.replace(/_/g, " ") ?? ""}</p></div>
-                <Badge dot live={isOperationActive(op.state)} tone={TONE(op.state)}>{t.states[op.state] ?? op.state}</Badge>
-              </li>
-            ))}
-          </ol>
-        )}
-      </Card>
+      <div className="space-y-3">
+        <div role="tablist" aria-label={a.tabOperations} className="flex gap-1">
+          {filters.map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={filter === id} onClick={() => setFilter(id)}
+              className={`h-8 rounded-lg px-3 text-[13px] font-medium transition-colors ${filter === id ? "bg-hover-strong text-foreground" : "text-muted hover:bg-hover hover:text-foreground"}`}>{label}</button>
+          ))}
+        </div>
+        <Card className="overflow-hidden">
+          {rows.length === 0 ? <EmptyState icon={<IconActivity size={18} />} title={a.noOperations} description={a.noOperationsBody} /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border bg-surface-muted/50 text-xs uppercase tracking-wide text-muted">
+                  <tr><th className="px-5 py-3 font-medium">{o.when}</th><th className="px-3 py-3 font-medium">{o.operation}</th><th className="px-3 py-3 font-medium">{o.target}</th><th className="px-3 py-3 font-medium">{o.status}</th><th className="px-5 py-3 font-medium">{o.details}</th></tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {rows.map((op) => (
+                    <tr key={op.id} className="transition-colors hover:bg-hover">
+                      <td className="whitespace-nowrap px-5 py-3 text-muted" title={formatDateTime(op.created_at, locale)}>{relativeTime(op.created_at, locale, t)}</td>
+                      <td className="px-3 py-3"><Link href={`/o/${org.slug}/operations/${op.id}`} className="font-medium hover:underline">{o.kinds[op.kind] ?? op.kind.replace(/[._]/g, " ")}</Link></td>
+                      <td className="px-3 py-3">
+                        {op.resource_type === "tenant" && op.resource_id && op.resource_name
+                          ? <Link href={`/o/${org.slug}/tenants/${op.resource_id}`} className="hover:underline">{op.resource_name}</Link>
+                          : <span className="text-muted">{t.resources[op.resource_type] ?? op.resource_type.replace(/_/g, " ")}</span>}
+                      </td>
+                      <td className="px-3 py-3"><Badge dot live={isOperationActive(op.state)} tone={TONE(op.state)}>{t.states[op.state] ?? op.state}</Badge></td>
+                      <td className="px-5 py-3 text-xs text-muted">
+                        {op.error_code ? <span className="font-mono text-danger">{op.error_code}</span> : isOperationActive(op.state) && op.current_step ? op.current_step.replace(/_/g, " ") : "—"}
+                        {op.attempt_count > 1 ? ` · ${t.operation.attempt(op.attempt_count)}` : ""}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {ops.hasNextPage ? (
+            <div className="border-t border-border p-3 text-center">
+              <Button loading={ops.isFetchingNextPage} onClick={() => void ops.fetchNextPage()}>{a.loadOlder}</Button>
+            </div>
+          ) : null}
+        </Card>
+      </div>
     );
   }
 

@@ -9,8 +9,8 @@
 import Link from "next/link";
 
 import type { ConsoleError } from "@/lib/client/api";
-import { useConnections, useTenantActivity, useTenants } from "@/lib/client/queries";
-import { canAdminister, canOperate, isOperationActive, tenantStateLabel } from "@/lib/manager/contract";
+import { useConnections, useRepositoryNames, useTenantActivity, useTenants } from "@/lib/client/queries";
+import { canAdminister, canOperate, isOperationActive, runtimeNeedsAttention, tenantStateLabel } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
 import { OnboardingChecklist } from "./onboarding-checklist";
@@ -25,11 +25,14 @@ export function Dashboard() {
   const { t } = useT();
   const tenants = useTenants(orgId);
   const conns = useConnections(orgId);
+  const repoNames = useRepositoryNames(orgId);
   const items = tenants.data?.items ?? [];
   const activity = useTenantActivity(orgId, items.slice(0, 6).map((x) => x.id));
 
   const running = items.filter((x) => x.observed_state === "running").length;
-  const attention = items.filter((x) => tenantStateLabel(x).tone === "danger").length;
+  // Failed tenants, plus running tenants whose runtime has stopped checking in.
+  const silent = activity.filter((q) => runtimeNeedsAttention(q.data?.runtime)).length;
+  const attention = items.filter((x) => tenantStateLabel(x).tone === "danger").length + silent;
   const busy = items.filter((x) => ["provisioning", "deleting"].includes(x.observed_state)).length;
   const active = conns.data?.items.find((c) => c.status === "active");
   const ghLabel = conns.isPending ? "…" : active ? t.overview.connected : conns.data?.items.length ? t.overview.needsAttention : t.overview.notConnected;
@@ -79,7 +82,7 @@ export function Dashboard() {
                 <li key={x.id} style={{ "--i": i } as React.CSSProperties}>
                   <Link href={`${base}/tenants/${x.id}`} className="group flex items-center gap-3.5 px-5 py-3.5 transition-colors hover:bg-hover">
                     <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-raised text-subtle transition-colors group-hover:text-accent"><IconBoxes size={15} /></span>
-                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{x.slug}</span><span className="block text-xs text-muted">{t.overview.fleetSize(x.fleet_size)}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{x.slug}</span><span className="block truncate text-xs text-muted">{repoNames.get(String(x.github_repository_id)) ? `${repoNames.get(String(x.github_repository_id))} · ` : ""}{t.overview.fleetSize(x.fleet_size)}</span></span>
                     <StateBadge tenant={x} />
                     <IconArrowRight size={14} className="-ml-1 text-subtle opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
                   </Link>

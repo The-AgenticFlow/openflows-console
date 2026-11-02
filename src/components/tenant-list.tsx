@@ -1,7 +1,9 @@
 // TenantList: the org's tenants as a table (name, status, target state, fleet
 // size) with a name filter and a status filter, each row linking to the
 // tenant's detail page. Polls while any tenant is provisioning/deleting.
-// Operators (admin/developer) get the "Create tenant" entry point; viewers see
+// Running tenants whose agent runtime is not checking in get a runtime badge
+// beside their state. Operators (admin/developer) get the "Create tenant"
+// entry point; viewers see
 // the list read-only. All text follows the active language.
 "use client";
 
@@ -10,10 +12,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { ConsoleError } from "@/lib/client/api";
-import { useTenants } from "@/lib/client/queries";
-import { canOperate, tenantStateLabel } from "@/lib/manager/contract";
+import { useRepositoryNames, useTenantActivity, useTenants } from "@/lib/client/queries";
+import { canOperate, runtimeNeedsAttention, tenantStateLabel } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
+import { RuntimeHealthBadge } from "./runtime-health";
 import { useConsole } from "./shell/console-context";
 import { StateBadge, useStateName } from "./tenant-status";
 import { LinkButton } from "./ui/button";
@@ -29,6 +32,10 @@ export function TenantList() {
   const router = useRouter();
   const stateName = useStateName();
   const { data, error, isPending, refetch } = useTenants(orgId);
+  const running = (data?.items ?? []).filter((x) => x.observed_state === "running");
+  const statuses = useTenantActivity(orgId, running.map((x) => x.id));
+  const repoNames = useRepositoryNames(orgId);
+  const runtimeOf = (id: string) => statuses[running.findIndex((x) => x.id === id)]?.data?.runtime;
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -101,10 +108,15 @@ export function TenantList() {
                           {x.slug}
                         </Link>
                       </td>
-                      <td className="px-3 py-3.5"><StateBadge tenant={x} /></td>
+                      <td className="px-3 py-3.5">
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <StateBadge tenant={x} />
+                          {runtimeNeedsAttention(runtimeOf(x.id)) ? <RuntimeHealthBadge runtime={runtimeOf(x.id)} /> : null}
+                        </span>
+                      </td>
                       <td className="hidden px-3 py-3.5 text-muted md:table-cell">{stateName(x.desired_state)}</td>
                       <td className="px-3 py-3.5 text-right tabular-nums">{x.fleet_size}</td>
-                      <td className="hidden px-3 py-3.5 font-mono text-xs text-muted lg:table-cell">{String(x.github_repository_id)}</td>
+                      <td className="hidden px-3 py-3.5 font-mono text-xs text-muted lg:table-cell">{repoNames.get(String(x.github_repository_id)) ?? String(x.github_repository_id)}</td>
                       <td className="px-5 py-3.5"><IconArrowRight size={14} className="text-subtle opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" /></td>
                     </tr>
                   );

@@ -2,7 +2,8 @@
 // alerts for the active organisation. Manager has no notification feed, so
 // every alert is derived from real state the Console already reads (and that
 // TanStack Query shares with the pages, so no extra requests): organisation
-// setup, failed or long-provisioning tenants, the GitHub connection, pending
+// setup, failed or long-provisioning tenants, running tenants whose runtime
+// stopped checking in, the GitHub connection, pending
 // or expired invitations (admins), and an unlinked Coder account (operators).
 // An alert disappears on its own once its cause is fixed. "Read" is a
 // per-browser convenience: the ids seen are kept in localStorage
@@ -14,8 +15,8 @@ import Link from "next/link";
 import { type ComponentType, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { api } from "@/lib/client/api";
-import { useCoderIdentity, useConnections, useInvitations, useTenants } from "@/lib/client/queries";
-import { canAdminister, canOperate, tenantStateLabel } from "@/lib/manager/contract";
+import { useCoderIdentity, useConnections, useInvitations, useTenantActivity, useTenants } from "@/lib/client/queries";
+import { canAdminister, canOperate, runtimeNeedsAttention, tenantStateLabel } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
 import { IconAlert, IconBell, IconBoxes, IconCheck, IconGithub, IconInfo, IconMail, IconTerminal } from "../ui/icons";
@@ -54,6 +55,9 @@ function useAlerts(): Alert[] {
   const conns = useConnections(orgId);
   const invitations = useInvitations(orgId, admin);
   const coder = useCoderIdentity();
+  const running = (tenants.data?.items ?? []).filter((x) => x.observed_state === "running");
+  const statuses = useTenantActivity(orgId, running.map((x) => x.id));
+  const silentKey = running.filter((_, i) => runtimeNeedsAttention(statuses[i]?.data?.runtime)).map((x) => x.id).join();
   const base = `/o/${org.slug}`;
 
   return useMemo(() => {
@@ -68,6 +72,9 @@ function useAlerts(): Alert[] {
       const key = tenantStateLabel(x).key;
       if (key === "failed") out.push({ id: `tenant-failed:${x.id}`, severity: "danger", title: n.tenantFailed(x.slug), body: n.tenantFailedBody, href: `${base}/tenants/${x.id}`, icon: IconBoxes });
       if (key === "provisioning") out.push({ id: `tenant-prov:${x.id}`, severity: "info", title: n.tenantProvisioning(x.slug), body: n.tenantProvisioningBody, href: `${base}/tenants/${x.id}`, icon: IconBoxes });
+    }
+    for (const x of running) {
+      if (silentKey.split(",").includes(x.id)) out.push({ id: `runtime-down:${x.id}`, severity: "danger", title: n.runtimeDown(x.slug), body: n.runtimeDownBody, href: `${base}/tenants/${x.id}`, icon: IconTerminal });
     }
     if (admin && conns.data) {
       const live = conns.data.items.filter((c) => c.status !== "disconnected");
@@ -85,7 +92,7 @@ function useAlerts(): Alert[] {
     }
     const rank: Record<Severity, number> = { danger: 0, warning: 1, info: 2 };
     return out.sort((a, b) => rank[a.severity] - rank[b.severity]);
-  }, [pending, info.data, tenants.data, conns.data, invitations.data, coder.data, admin, role, orgId, base, n]);
+  }, [pending, info.data, tenants.data, conns.data, invitations.data, coder.data, admin, role, orgId, base, n, running, silentKey]);
 }
 
 export function NotificationBell() {

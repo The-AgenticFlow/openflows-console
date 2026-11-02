@@ -26,6 +26,7 @@ import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { IconCrown, IconLink, IconMail, IconShield, IconUsers } from "./ui/icons";
 import { Avatar, Badge, Card, CardHeader, CopyButton, EmptyState, ErrorNotice, inputClass, SearchInput, selectClass, Skeleton, StatCard } from "./ui/primitives";
+import { useToast } from "./ui/toast";
 
 type Dialog = { kind: "remove"; member: Member } | { kind: "revoke"; invitation: PendingInvitation } | { kind: "transfer" } | null;
 const ROLES: Role[] = ["admin", "developer", "viewer"];
@@ -35,6 +36,7 @@ export function MembersPanel() {
   const { org, orgId, role, user } = useConsole();
   const { t, locale } = useT();
   const router = useRouter();
+  const toast = useToast();
   const admin = canAdminister(role);
   const members = useMembers(orgId);
   const invitations = useInvitations(orgId, admin);
@@ -50,7 +52,7 @@ export function MembersPanel() {
   const invite = useMemberMutation(orgId, (v: { login: string; role: Role }) => api.invite(orgId, v.login, v.role));
   const qc = useQueryClient();
   const refreshInvitations = () => void qc.invalidateQueries({ queryKey: keys.invitations(orgId) });
-  const revoke = useMutation({ mutationFn: (id: string) => api.revokeInvitation(orgId, id), onSuccess: (_, id) => { refreshInvitations(); if (created?.invitation_id === id) setCreated(null); } });
+  const revoke = useMutation({ mutationFn: (id: string) => api.revokeInvitation(orgId, id), onSuccess: (_, id) => { refreshInvitations(); toast.show({ kind: "success", title: t.toasts.inviteRevoked }); if (created?.invitation_id === id) setCreated(null); } });
   const setRole = useMemberMutation(orgId, (v: { userId: string; role: Role }) => api.updateMember(orgId, v.userId, { role: v.role }));
   const remove = useMemberMutation(orgId, (userId: string) => api.removeMember(orgId, userId));
   const transfer = useMemberMutation(orgId, (id: string) => api.transferOwnership(orgId, id));
@@ -81,6 +83,7 @@ export function MembersPanel() {
     try {
       setCreated((await invite.mutateAsync({ login: login.trim(), role: inviteRole })) as InvitationCreated);
       setLogin(""); setTouched(false);
+      toast.show({ kind: "success", title: t.toasts.inviteCreated, body: t.toasts.inviteCreatedBody });
       refreshInvitations();
     } catch { /* shown via invite.error */ }
   }
@@ -120,7 +123,7 @@ export function MembersPanel() {
                         <p className="truncate text-xs text-muted">{t.roles[`${m.role}Body`]}</p>
                       </div>
                       {admin && !owner && !self ? (
-                        <select aria-label={t.members.roleFor(m.display_name)} value={m.role} disabled={setRole.isPending} onChange={(e) => setRole.mutate({ userId: m.user_id, role: e.target.value as Role })} className={selectClass}>
+                        <select aria-label={t.members.roleFor(m.display_name)} value={m.role} disabled={setRole.isPending} onChange={(e) => setRole.mutate({ userId: m.user_id, role: e.target.value as Role }, { onSuccess: () => toast.show({ kind: "success", title: t.toasts.roleChanged }) })} className={selectClass}>
                           {ROLES.map((r) => <option key={r} value={r}>{t.roles[r]}</option>)}
                         </select>
                       ) : <Badge tone={ROLE_TONE[m.role]}>{t.roles[m.role]}</Badge>}
@@ -251,7 +254,7 @@ export function MembersPanel() {
         onConfirm={() => {
           if (dialog?.kind !== "remove") return;
           const leaving = dialog.member.user_id === user.id;
-          remove.mutate(dialog.member.user_id, { onSuccess: () => { closeDialog(); if (leaving) { router.push("/"); router.refresh(); } } });
+          remove.mutate(dialog.member.user_id, { onSuccess: () => { closeDialog(); toast.show({ kind: "success", title: t.toasts.memberRemoved }); if (leaving) { router.push("/"); router.refresh(); } } });
         }}
       />
       <ConfirmDialog
@@ -275,7 +278,7 @@ export function MembersPanel() {
         pending={transfer.isPending}
         error={transfer.error as ConsoleError | null}
         onClose={closeDialog}
-        onConfirm={() => transfer.mutate(newOwner, { onSuccess: () => { closeDialog(); setNewOwner(""); router.refresh(); } })}
+        onConfirm={() => transfer.mutate(newOwner, { onSuccess: () => { closeDialog(); toast.show({ kind: "success", title: t.toasts.ownershipTransferred }); setNewOwner(""); router.refresh(); } })}
       />
     </div>
   );

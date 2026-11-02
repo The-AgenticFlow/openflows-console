@@ -27,7 +27,7 @@
   --surface-muted: #18181b;
   --foreground: #fafafa;
   --muted: #a1a1aa;
-  --subtle: #71717a;
+  --subtle: #8b8b94; /* AA (4.5:1) for small text on the canvas */
   --border: #27272a;
   --border-strong: #3f3f46;
   --hover: rgba(255, 255, 255, 0.04);
@@ -71,7 +71,7 @@
   --surface-muted: #f1f1f3;
   --foreground: #111114;
   --muted: #5b5b66;
-  --subtle: #8a8a95;
+  --subtle: #6b6b76; /* AA (4.5:1) for small text on white */
   --border: #e6e6ea;
   --border-strong: #d4d4da;
   --hover: rgba(17, 17, 20, 0.035);
@@ -110,7 +110,7 @@
     --surface-muted: #f1f1f3;
     --foreground: #111114;
     --muted: #5b5b66;
-    --subtle: #8a8a95;
+    --subtle: #6b6b76; /* AA (4.5:1) for small text on white */
     --border: #e6e6ea;
     --border-strong: #d4d4da;
     --hover: rgba(17, 17, 20, 0.035);

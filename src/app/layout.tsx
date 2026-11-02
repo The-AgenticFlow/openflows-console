@@ -10,6 +10,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
+import { ToastProvider } from "@/components/ui/toast";
+import { messages } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
 import { PreferencesProvider } from "@/lib/preferences/client";
 import { parseTheme, THEME_COOKIE } from "@/lib/preferences/theme";
@@ -31,7 +33,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang={locale} data-theme={theme === "system" ? undefined : theme} className={`${inter.variable} ${mono.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full">
         <Providers>
-          <PreferencesProvider locale={locale} theme={theme}>{children}</PreferencesProvider>
+          <PreferencesProvider locale={locale} theme={theme}>
+            <ToastProvider closeLabel={messages(locale).common.close}>{children}</ToastProvider>
+          </PreferencesProvider>
         </Providers>
       </body>
     </html>

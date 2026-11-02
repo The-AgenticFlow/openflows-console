@@ -8,7 +8,7 @@ import { CreateOrgForm } from "@/components/create-org-form";
 import { OnboardingSteps } from "@/components/onboarding-steps";
 import { Logo } from "@/components/ui/logo";
 import { getMessages } from "@/lib/i18n/server";
-import { getConsoleSession, UnauthenticatedError } from "@/lib/server/manager";
+import { getConsoleSession, signInPath, UnauthenticatedError } from "@/lib/server/manager";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getMessages();
@@ -20,7 +20,7 @@ export default async function NewOrgPage() {
   try {
     session = await getConsoleSession();
   } catch (e) {
-    if (e instanceof UnauthenticatedError) redirect("/login");
+    if (e instanceof UnauthenticatedError) redirect(await signInPath());
     throw e;
   }
   const { t } = await getMessages();

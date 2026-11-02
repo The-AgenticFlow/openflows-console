@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 import { ConsoleProvider } from "@/components/shell/console-context";
 import { ConsoleShell } from "@/components/shell/console-shell";
-import { getConsoleSession, UnauthenticatedError } from "@/lib/server/manager";
+import { getConsoleSession, signInPath, UnauthenticatedError } from "@/lib/server/manager";
 
 export default async function OrgLayout({
   children,
@@ -18,7 +18,7 @@ export default async function OrgLayout({
   try {
     session = await getConsoleSession();
   } catch (e) {
-    if (e instanceof UnauthenticatedError) redirect("/login");
+    if (e instanceof UnauthenticatedError) redirect(await signInPath());
     throw e;
   }
   const org = session.orgs.find((o) => o.slug === slug);

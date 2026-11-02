@@ -180,6 +180,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
 
   return (
     <div className="flex min-h-screen">
+      <a href="#main" className="sr-only z-50 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-on-primary focus:not-sr-only focus:fixed focus:left-3 focus:top-3">{t.nav.skipToContent}</a>
       <aside
         className={`sticky top-0 hidden h-screen shrink-0 border-r border-border bg-surface/70 transition-[width] duration-300 ease-out md:block ${collapsed ? "w-[68px]" : "w-64"}`}
       >
@@ -225,7 +226,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
             <UserMenu />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-8 md:py-10">
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 outline-none md:px-8 md:py-10">
           <OrgStatusBanner />
           <div key={pathname}>{children}</div>
         </main>

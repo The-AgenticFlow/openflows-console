@@ -16,6 +16,7 @@ import {
   type Member,
   type Operation,
   type OperationAccepted,
+  type OperationListItem,
   type Organization,
   type OrgSummary,
   type PendingInvitation,
@@ -160,8 +161,9 @@ export const api = {
   // Coder-backed identity
   getCoderIdentity: () => request<CoderIdentity>("GET", "/auth/coder"),
   startCoderLink: () => request<{ authorization_url: string }>("POST", "/auth/coder/start", {}),
-  // Not served by Manager yet (UI degrades via isUnsupported)
-  listOperations: (orgId: string) => request<CursorPage<Operation>>("GET", `${org(orgId)}/operations`),
+  // Newer read endpoints; older Managers answer 404 and the UI degrades via isUnsupported.
+  listOperations: (orgId: string, after?: string) =>
+    request<CursorPage<OperationListItem>>("GET", `${org(orgId)}/operations?limit=50${after ? `&after=${encodeURIComponent(after)}` : ""}`),
   listAudit: (orgId: string, after?: string) =>
     request<CursorPage<AuditEntry>>("GET", `${org(orgId)}/audit?limit=50${after ? `&after=${encodeURIComponent(after)}` : ""}`),
   listInvitations: (orgId: string) => request<{ items: PendingInvitation[] }>("GET", `${org(orgId)}/invitations`),

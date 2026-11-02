@@ -22,6 +22,7 @@ import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 import { IconPlay, IconRefresh, IconX } from "./ui/icons";
 import { ErrorNotice } from "./ui/primitives";
+import { useToast } from "./ui/toast";
 
 const ACTION_ICON: Partial<Record<TenantAction, typeof IconPlay>> = { start: IconPlay, clean: IconRefresh, delete: IconX };
 
@@ -29,6 +30,7 @@ export function TenantActions({ tenant, busy = false, onStarted }: Readonly<{ te
   const { orgId, role } = useConsole();
   const { t } = useT();
   const run = useTenantAction(orgId, tenant.id);
+  const toast = useToast();
   const [pending, setPending] = useState<TenantAction | null>(null);
   const actions = tenantActions(tenant, role);
   if (actions.length === 0) return null;
@@ -36,7 +38,7 @@ export function TenantActions({ tenant, busy = false, onStarted }: Readonly<{ te
   const close = () => { setPending(null); run.reset(); };
   const copy = pending ? t.tenant.actions[pending] : null;
   const exec = (a: TenantAction, done?: () => void) =>
-    run.mutate(a, { onSuccess: (op) => { onStarted(op.operation_id, a); done?.(); } });
+    run.mutate(a, { onSuccess: (op) => { toast.show({ kind: "info", title: t.toasts.actionRequested(t.tenant.actions[a].label) }); onStarted(op.operation_id, a); done?.(); } });
 
   return (
     <>
