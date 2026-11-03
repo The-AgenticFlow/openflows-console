@@ -3,19 +3,19 @@
 // every alert is derived from real state the Console already reads (and that
 // TanStack Query shares with the pages, so no extra requests): organisation
 // setup, failed or long-provisioning tenants, running tenants whose runtime
-// stopped checking in, the GitHub connection, pending
+// stopped checking in, tenants whose agent chats failed, the GitHub connection, pending
 // or expired invitations (admins), and an unlinked Coder account (operators).
 // An alert disappears on its own once its cause is fixed. "Read" is a
 // per-browser convenience: the ids seen are kept in localStorage
 // (`of_notifications_seen`), and the page works without it.
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { type ComponentType, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { api } from "@/lib/client/api";
-import { useCoderIdentity, useConnections, useInvitations, useTenantActivity, useTenants } from "@/lib/client/queries";
+import { keys, useCoderIdentity, useConnections, useInvitations, useTenantActivity, useTenants } from "@/lib/client/queries";
 import { canAdminister, canOperate, runtimeNeedsAttention, tenantStateLabel } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
@@ -58,6 +58,15 @@ function useAlerts(): Alert[] {
   const running = (tenants.data?.items ?? []).filter((x) => x.observed_state === "running");
   const statuses = useTenantActivity(orgId, running.map((x) => x.id));
   const silentKey = running.filter((_, i) => runtimeNeedsAttention(statuses[i]?.data?.runtime)).map((x) => x.id).join();
+  // Failed agent chats per running tenant (same cache key as the tenant page card).
+  const agents = useQueries({
+    queries: running.map((x) => ({ queryKey: [...keys.tenant(orgId, x.id), "agents"] as const, queryFn: () => api.getAgentActivity(orgId, x.id), retry: false, refetchInterval: 15_000 })),
+  });
+  const agentFailures = running
+    .map((x, i) => ({ id: x.id, slug: x.slug, failed: (agents[i]?.data?.chats ?? []).filter((c) => c.status === "error") }))
+    .filter((x) => x.failed.length)
+    .map((x) => `${x.id}|${x.slug}|${x.failed.length}|${x.failed[0].error_code ?? "AGENT_ERROR"}`)
+    .join();
   const base = `/o/${org.slug}`;
 
   return useMemo(() => {
@@ -76,6 +85,10 @@ function useAlerts(): Alert[] {
     for (const x of running) {
       if (silentKey.split(",").includes(x.id)) out.push({ id: `runtime-down:${x.id}`, severity: "danger", title: n.runtimeDown(x.slug), body: n.runtimeDownBody, href: `${base}/tenants/${x.id}`, icon: IconTerminal });
     }
+    for (const f of agentFailures ? agentFailures.split(",") : []) {
+      const [id, slug, count, code] = f.split("|");
+      out.push({ id: `agent-failed:${id}:${count}`, severity: "danger", title: `${t.agents.alertTitle(Number(count))} · ${slug}`, body: t.agents.errors[code] ?? t.agents.errors.AGENT_ERROR, href: `${base}/tenants/${id}`, icon: IconTerminal });
+    }
     if (admin && conns.data) {
       const live = conns.data.items.filter((c) => c.status !== "disconnected");
       if (live.length === 0) out.push({ id: `github-missing:${orgId}`, severity: "warning", title: n.githubMissing, body: n.githubMissingBody, href: `${base}/github`, icon: IconGithub });
@@ -92,7 +105,7 @@ function useAlerts(): Alert[] {
     }
     const rank: Record<Severity, number> = { danger: 0, warning: 1, info: 2 };
     return out.sort((a, b) => rank[a.severity] - rank[b.severity]);
-  }, [pending, info.data, tenants.data, conns.data, invitations.data, coder.data, admin, role, orgId, base, n, running, silentKey]);
+  }, [pending, info.data, tenants.data, conns.data, invitations.data, coder.data, admin, role, orgId, base, n, t, running, silentKey, agentFailures]);
 }
 
 export function NotificationBell() {
