@@ -27,7 +27,7 @@ export function OrgStatusBanner() {
   const { t } = useT();
   const b = t.banner;
   const router = useRouter();
-  const pending = org.status !== "active" && org.status !== "ready";
+  const pending = org.status === "provisioning" || org.status === "pending";
   const { data, refetch } = useQuery({
     queryKey: ["org", orgId, "info"],
     queryFn: () => api.getOrganization(orgId),
@@ -56,6 +56,20 @@ export function OrgStatusBanner() {
   }, [pending, data?.status, router]);
 
   if (ready) return null;
+
+  // Terminal states are not "setting up": say what they are.
+  if (status === "deleting" || status === "deleted" || status === "suspended") {
+    const gone = status !== "suspended";
+    return (
+      <div role="status" className="mb-6 flex animate-pop items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3.5 text-sm text-warning">
+        <IconAlert size={18} className="mt-0.5" />
+        <div>
+          <p className="font-medium">{gone ? b.deletingTitle : b.suspendedTitle}</p>
+          <p className="mt-0.5 opacity-90">{gone ? b.deletingBody : b.suspendedBody}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (failed) {
     return (
