@@ -6,9 +6,10 @@
 import { cookies } from "next/headers";
 
 import { getEnv } from "../config/env";
-import type { CursorPage, Me, OrgSummary } from "../manager/contract";
+import type { CursorPage, InvitationPreview, Me, OrgSummary } from "../manager/contract";
 
 export class UnauthenticatedError extends Error {}
+export class NotFoundError extends Error {}
 
 /** Manager's browser session cookie (see Manager `routes/auth.rs`). */
 const SESSION_COOKIE = "of_session";
@@ -31,8 +32,23 @@ async function get<T>(path: string): Promise<T> {
     cache: "no-store",
   });
   if (res.status === 401) throw new UnauthenticatedError();
+  if (res.status === 404) throw new NotFoundError();
   if (!res.ok) throw new Error(`Manager ${path} failed with ${res.status}`);
   return (await res.json()) as T;
+}
+
+/**
+ * What the signed-in visitor's invitation offers, or "unavailable" when Manager
+ * says 404 (wrong account, used, revoked, expired or unknown: it deliberately
+ * does not say which). Throws UnauthenticatedError when signed out.
+ */
+export async function getInvitationPreview(token: string): Promise<InvitationPreview | "unavailable"> {
+  try {
+    return await get<InvitationPreview>(`/api/v1/invitations/preview?token=${encodeURIComponent(token)}`);
+  } catch (e) {
+    if (e instanceof NotFoundError) return "unavailable";
+    throw e;
+  }
 }
 
 export interface ConsoleSession {

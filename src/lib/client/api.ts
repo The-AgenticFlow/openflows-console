@@ -136,6 +136,7 @@ export const api = {
   removeMember: (orgId: string, userId: string) => request<void>("DELETE", `${org(orgId)}/members/${encodeURIComponent(userId)}`),
   invite: (orgId: string, githubLogin: string, role: Role) =>
     request<InvitationCreated>("POST", `${org(orgId)}/invitations`, { github_login: githubLogin, role }),
+  acceptInvitation: (token: string) => request<{ organization_id: string }>("POST", "/invitations/accept", { token }),
   revokeInvitation: (orgId: string, id: string) => request<void>("DELETE", `${org(orgId)}/invitations/${encodeURIComponent(id)}`),
   transferOwnership: (orgId: string, newOwnerUserId: string) =>
     request<void>("POST", `${org(orgId)}/transfer-ownership`, { new_owner_user_id: newOwnerUserId }),

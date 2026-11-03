@@ -44,7 +44,6 @@ const nextConfig: NextConfig = {
     return [
       { source: "/api/v1/:path*", destination: `${manager}/api/v1/:path*` },
       { source: "/auth/:path*", destination: `${manager}/auth/:path*` },
-      { source: "/invitations/accept", destination: `${manager}/invitations/accept` },
     ];
   },
 };

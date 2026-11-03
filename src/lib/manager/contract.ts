@@ -194,6 +194,15 @@ export interface AuditEntry {
   request_id: string | null;
 }
 
+/** What an invitation offers, shown to the invited account before it accepts. */
+export interface InvitationPreview {
+  organization: { slug: string; display_name: string };
+  role: Role;
+  /** Display name of the admin who invited them; null if that user is gone. */
+  invited_by: string | null;
+  expires_at: string;
+}
+
 export interface PendingInvitation {
   invitation_id: string;
   invitee_github_user_id: number;
