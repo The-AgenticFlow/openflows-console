@@ -41,7 +41,11 @@ export function OnboardingChecklist() {
     },
   ];
   const doneCount = steps.filter((s) => s.done).length;
-  if (!loading && doneCount === steps.length) return null; // setup complete: the dashboard speaks for itself
+  // Render nothing until both queries have answered. Before that, "connected"
+  // and "has a tenant" are unknown and would read as false, flashing an
+  // unfinished checklist at an organisation that is fully set up. Once loaded,
+  // a finished setup shows nothing: the dashboard speaks for itself.
+  if (loading || doneCount === steps.length) return null;
 
   return (
     <Card>
@@ -58,7 +62,7 @@ export function OnboardingChecklist() {
               <p className="text-sm text-muted">{s.detail}</p>
             </div>
             {s.blocked && !s.done ? <Badge>{c.connectFirst}</Badge> : null}
-            {!s.done && !s.blocked && s.href && !loading ? <Link href={s.href} className="group inline-flex shrink-0 items-center gap-1 rounded-lg border border-border-strong bg-surface-raised px-3 py-1.5 text-sm font-medium transition-colors hover:bg-surface-muted">{s.cta} <IconArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" /></Link> : null}
+            {!s.done && !s.blocked && s.href ? <Link href={s.href} className="group inline-flex shrink-0 items-center gap-1 rounded-lg border border-border-strong bg-surface-raised px-3 py-1.5 text-sm font-medium transition-colors hover:bg-surface-muted">{s.cta} <IconArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" /></Link> : null}
           </li>
         ))}
       </ol>
