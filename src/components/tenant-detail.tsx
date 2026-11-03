@@ -16,6 +16,7 @@ import { useRepositoryNames, useTenant, useTenantStatus } from "@/lib/client/que
 import { canOperate, isOperationActive, type TenantAction } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
+import { AgentActivityCard } from "./agent-activity";
 import { OperationProgress } from "./operation-progress";
 import { RuntimeHealthBadge, RuntimeHealthCard } from "./runtime-health";
 import { useConsole } from "./shell/console-context";
@@ -97,6 +98,7 @@ export function TenantDetail({ tenantId }: Readonly<{ tenantId: string }>) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-6">
           {tn.observed_state === "running" ? <RuntimeHealthCard tenantId={tn.id} runtime={status.data?.runtime} /> : null}
+          {tn.observed_state === "running" ? <AgentActivityCard tenantId={tn.id} repoName={repoName} /> : null}
           {operationId ? (
             <Card>
               <CardHeader title={t.tenant.latestOperation} description={t.tenant.latestOperationBody} icon={<IconActivity size={15} />} />

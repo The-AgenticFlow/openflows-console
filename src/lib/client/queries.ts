@@ -42,6 +42,10 @@ export const useTenant = (orgId: string, id: string) =>
 export const useTenantStatus = (orgId: string, id: string) =>
   useQuery({ queryKey: keys.tenantStatus(orgId, id), queryFn: () => api.getTenantStatus(orgId, id), retry: false, refetchInterval: 5000 });
 
+/** Agent chats for a tenant; polls while the tenant is running. Older Managers without the endpoint just yield an error the card hides. */
+export const useAgentActivity = (orgId: string, id: string, enabled: boolean) =>
+  useQuery({ queryKey: [...keys.tenant(orgId, id), "agents"] as const, queryFn: () => api.getAgentActivity(orgId, id), enabled, retry: false, refetchInterval: 10_000 });
+
 export const useMembers = (orgId: string) =>
   useQuery({ queryKey: keys.members(orgId), queryFn: () => api.listMembers(orgId), retry: false });
 

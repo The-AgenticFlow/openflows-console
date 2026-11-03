@@ -152,6 +152,22 @@ export interface RuntimeStatus {
 export const runtimeNeedsAttention = (r: RuntimeStatus | null | undefined) =>
   !!r && (r.health === "unresponsive" || r.health === "restart_required");
 
+/**
+ * One managed agent chat on a tenant (an agent working one ticket), from
+ * GET .../tenants/{id}/agent-activity. `status` is Coder's chat status, or
+ * `gone` (chat deleted) / `unknown` (Coder not reachable). Failures carry a
+ * stable `error_code` only; the provider's detail is never exposed.
+ */
+export interface AgentChat {
+  ticket_id: string;
+  role: string;
+  status: string;
+  error_code: "AI_USAGE_LIMIT" | "AI_RATE_LIMITED" | "AI_AUTH_FAILED" | "AGENT_ERROR" | null;
+  retryable: boolean | null;
+  started_at: string;
+  updated_at: string | null;
+}
+
 export interface GithubConnection {
   id: string;
   organization_id: string;

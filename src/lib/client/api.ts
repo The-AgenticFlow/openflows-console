@@ -5,6 +5,7 @@
 // safe message, recovery hint, retryability and request ID for support. Raw
 // upstream text is never shown; unknown codes fall back to a generic message.
 import {
+  type AgentChat,
   type ApiErrorBody,
   type AuditEntry,
   type CoderIdentity,
@@ -150,6 +151,7 @@ export const api = {
   // Tenants
   listTenants: (orgId: string) => request<CursorPage<Tenant>>("GET", `${org(orgId)}/tenants`),
   getTenant: (orgId: string, id: string) => request<Tenant>("GET", `${org(orgId)}/tenants/${encodeURIComponent(id)}`),
+  getAgentActivity: (orgId: string, id: string) => request<{ chats: AgentChat[] }>("GET", `${org(orgId)}/tenants/${encodeURIComponent(id)}/agent-activity`),
   getTenantStatus: (orgId: string, id: string) => request<TenantStatus>("GET", `${org(orgId)}/tenants/${encodeURIComponent(id)}/status`),
   createTenant: (orgId: string, input: { repository_url: string; name: string; fleet: number }, key?: string) =>
     request<OperationAccepted>("POST", `${org(orgId)}/tenants`, input, key),
