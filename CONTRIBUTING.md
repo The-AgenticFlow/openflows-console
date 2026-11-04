@@ -28,6 +28,7 @@ pnpm dev         # start the dev server at http://localhost:3000
 ```
 
 The Console needs a running OpenFlows Manager (see [Running against OpenFlows Manager](#running-against-openflows-manager)).
+For the full stack (Manager, Coder, GitHub App and agents) follow [Run the whole stack locally](./docs/local-development.md).
 
 ## Project structure
 
@@ -89,10 +90,15 @@ Run all of these locally before opening a PR:
 ```bash
 pnpm lint        # ESLint
 pnpm typecheck   # tsc --noEmit
+pnpm test        # unit tests
 pnpm build       # production build
+pnpm test:e2e    # browser tests against a fake Manager (needs Google Chrome)
 ```
 
-These run automatically in CI on every push/PR, so a passing local run means a green CI.
+Lint, typecheck, unit tests and build run in CI on every push/PR. The browser
+tests run there too, as a separate job. They build the Console into `.next-e2e`
+and start a fake Manager (`e2e/support/fake-manager.mjs`), so they need no other
+services; see [Run the tests](./docs/local-development.md#10-run-the-tests).
 
 ## Pull requests
 

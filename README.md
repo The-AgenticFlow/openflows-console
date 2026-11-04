@@ -69,7 +69,7 @@ docs/
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, workflow, and quality gates. See CONTRIBUTING.md to run it against a local Manager.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, workflow, and quality gates. To run the whole stack (Manager, Coder, GitHub App, agents) locally, follow [docs/local-development.md](./docs/local-development.md).
 
 ## Roadmap
 
