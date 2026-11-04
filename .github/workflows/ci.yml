@@ -48,6 +48,21 @@ jobs:
       - name: Build
         run: pnpm build
 
+  line-limits:
+    name: Line limits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Enforce per-file line-count limits
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/check_line_limits.py
+
   e2e:
     name: Browser tests
     runs-on: ubuntu-latest
