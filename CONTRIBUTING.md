@@ -9,7 +9,7 @@ Thanks for your interest in contributing! OpenFlows Console is the operator cont
   - [Development setup](#development-setup)
   - [Project structure](#project-structure)
   - [Development workflow](#development-workflow)
-    - [Mock/fixture mode](#mockfixture-mode)
+    - [Running against OpenFlows Manager](#running-against-openflows-manager)
   - [Quality gates](#quality-gates)
   - [Pull requests](#pull-requests)
   - [Issue guidelines](#issue-guidelines)
@@ -27,7 +27,8 @@ pnpm install     # install dependencies
 pnpm dev         # start the dev server at http://localhost:3000
 ```
 
-The app runs standalone in **mock mode** by default (see [Mock/fixture mode](#mockfixture-mode)) — no OpenFlows deployment, Coder, Redis, or GitHub credentials are required to develop against.
+The Console needs a running OpenFlows Manager (see [Running against OpenFlows Manager](#running-against-openflows-manager)).
+For the full stack (Manager, Coder, GitHub App and agents) follow [Run the whole stack locally](./docs/local-development.md).
 
 ## Project structure
 
@@ -61,23 +62,26 @@ Key conventions:
 4. Run the quality gates (below) before pushing.
 5. Open a pull request using the template.
 
-### Mock/fixture mode
+### Running against OpenFlows Manager
 
-By default the app uses bundled mock data, so no environment variables or
-infrastructure are required. For a real OpenFlows deployment, create your local
-configuration:
+The Console has no mock backend: it talks to a real OpenFlows Manager
+(`crates/openflows-manager` in the OpenFlows repo, `/api/v1`). Run the Manager,
+then:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env.local   # set OPENFLOWS_MANAGER_URL
+pnpm dev
 ```
 
-Set `OPENFLOWS_DATA_SOURCE=real` and provide the connection values:
-
-- `REDIS_URL`
-- `OPENFLOWS_TENANT`
-
-Startup fails with a list of any missing real-mode variables. Never commit
-`.env.local` or real credentials.
+- `OPENFLOWS_MANAGER_URL` — Manager's base URL (default `http://127.0.0.1:3002`).
+- `OPENFLOWS_DOCS_URL`, `OPENFLOWS_STATUS_URL`, `OPENFLOWS_PRIVACY_URL`,
+  `OPENFLOWS_TERMS_URL` — optional sign-in page footer links; each is shown only
+  when set (absolute `http(s)` URLs only).
+- `OPENFLOWS_SUPPORT_URL` — optional target of the "Need help signing in?" link;
+  an `http(s)` URL or a `mailto:` address. Hidden when unset.
+- Sign-in uses Manager's GitHub OAuth. Register `http://localhost:3000/auth/github/callback`
+  as a callback URL on the GitHub App Manager is configured with.
+- Never commit `.env.local` or real credentials.
 
 ## Quality gates
 
@@ -86,10 +90,15 @@ Run all of these locally before opening a PR:
 ```bash
 pnpm lint        # ESLint
 pnpm typecheck   # tsc --noEmit
+pnpm test        # unit tests
 pnpm build       # production build
+pnpm test:e2e    # browser tests against a fake Manager (needs Google Chrome)
 ```
 
-These run automatically in CI on every push/PR, so a passing local run means a green CI.
+Lint, typecheck, unit tests and build run in CI on every push/PR. The browser
+tests run there too, as a separate job. They build the Console into `.next-e2e`
+and start a fake Manager (`e2e/support/fake-manager.mjs`), so they need no other
+services; see [Run the tests](./docs/local-development.md#10-run-the-tests).
 
 ## Pull requests
 

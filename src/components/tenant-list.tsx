@@ -1,230 +1,139 @@
-// TenantList: operator view over OpenFlows tenants discovered by the data
-// layer. In real mode, `/api/fleet` enumerates tenants from Redis `ns:*` keys,
-// matching OpenFlows' tenant existence contract.
+// TenantList: the org's tenants as a table (name, status, target state, fleet
+// size) with a name filter and a status filter, each row linking to the
+// tenant's detail page. Polls while any tenant is provisioning/deleting.
+// Running tenants whose agent runtime is not checking in get a runtime badge
+// beside their state. Operators (admin/developer) get the "Create tenant"
+// entry point; viewers see
+// the list read-only. All text follows the active language.
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-import { TenantActions } from "@/components/tenant-actions";
-import { summarizeTenants, type TenantSummary } from "@/lib/domain/tenant-summary";
-import type { TenantFleet } from "@/lib/domain/types";
+import type { ConsoleError } from "@/lib/client/api";
+import { useRepositoryNames, useTenantActivity, useTenants } from "@/lib/client/queries";
+import { canOperate, runtimeNeedsAttention, tenantStateLabel } from "@/lib/manager/contract";
+import { useT } from "@/lib/preferences/client";
 
-async function fetchFleet(): Promise<TenantFleet[]> {
-  const res = await fetch("/api/fleet");
-  if (!res.ok) {
-    throw new Error("Failed to load tenants");
-  }
-  return res.json();
-}
+import { RuntimeHealthBadge } from "./runtime-health";
+import { useConsole } from "./shell/console-context";
+import { StateBadge, useStateName } from "./tenant-status";
+import { LinkButton } from "./ui/button";
+import { IconArrowRight, IconBoxes, IconPlus } from "./ui/icons";
+import { Card, EmptyState, ErrorNotice, SearchInput, Skeleton } from "./ui/primitives";
+
+const FILTERS = ["all", "running", "provisioning", "stopped", "failed"] as const;
+type Filter = (typeof FILTERS)[number];
 
 export function TenantList() {
-  const { data, dataUpdatedAt, isFetching, isLoading, isError, refetch } = useQuery({
-    queryKey: ["fleet", "tenants"],
-    queryFn: fetchFleet,
-    refetchInterval: 15_000,
-  });
+  const { org, orgId, role } = useConsole();
+  const { t } = useT();
+  const router = useRouter();
+  const stateName = useStateName();
+  const { data, error, isPending, refetch } = useTenants(orgId);
+  const running = (data?.items ?? []).filter((x) => x.observed_state === "running");
+  const statuses = useTenantActivity(orgId, running.map((x) => x.id));
+  const repoNames = useRepositoryNames(orgId);
+  const runtimeOf = (id: string) => statuses[running.findIndex((x) => x.id === id)]?.data?.runtime;
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
-  if (isLoading) {
+  if (isPending) {
+    return <Card><div className="space-y-3 p-5" aria-busy="true" aria-label={t.tenants.loading}>{[0, 1, 2].map((i) => <Skeleton key={i} className="h-10" />)}</div></Card>;
+  }
+  if (error) return <ErrorNotice error={error as ConsoleError} onRetry={() => void refetch()} />;
+
+  if (data.items.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
-        Loading tenants…
-      </div>
+      <Card>
+        <EmptyState
+          icon={<IconBoxes size={18} />}
+          title={t.tenants.empty}
+          description={t.tenants.emptyBody}
+          action={canOperate(role) ? <LinkButton href={`/o/${org.slug}/tenants/new`} variant="primary"><IconPlus size={15} /> {t.tenants.create}</LinkButton> : undefined}
+        />
+      </Card>
     );
   }
 
-  if (isError) {
-    return (
-      <div className="rounded-lg border border-border bg-surface p-6">
-        <p className="text-sm text-danger">Failed to load tenants.</p>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="mt-3 rounded-md border border-border px-3 py-1.5 text-sm text-primary transition-colors hover:bg-surface-muted"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  const summaries = summarizeTenants(data ?? []);
-  const totals = summarizeAllTenants(summaries);
-
-  if (summaries.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-border bg-surface p-10 text-center">
-        <h2 className="text-base font-semibold text-foreground">No tenants found</h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-muted">
-          No OpenFlows namespaces were discovered. In real mode, a tenant appears
-          when the SharedStore contains at least one `ns:&lt;tenant&gt;:*` key.
-        </p>
-      </div>
-    );
-  }
+  const counts = Object.fromEntries(FILTERS.map((f) => [f, f === "all" ? data.items.length : data.items.filter((x) => tenantStateLabel(x).key === f).length])) as Record<Filter, number>;
+  const rows = data.items
+    .filter((x) => filter === "all" || tenantStateLabel(x).key === filter)
+    .filter((x) => x.slug.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-xs text-muted">
-          {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString()}` : "Waiting"}
-          {isFetching ? " · refreshing" : ""}
+    <div className="space-y-4">
+      <div className="flex animate-enter flex-wrap items-center justify-between gap-3">
+        <div role="tablist" aria-label={t.tenants.filter} className="flex flex-wrap gap-1">
+          {FILTERS.filter((f) => f === "all" || counts[f] > 0).map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="tab"
+              aria-selected={filter === f}
+              onClick={() => setFilter(f)}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-colors ${filter === f ? "bg-hover-strong text-foreground" : "text-muted hover:bg-hover hover:text-foreground"}`}
+            >
+              {f === "all" ? t.tenants.all : t.states[f]}
+              <span className="rounded bg-surface-muted px-1.5 text-[11px] tabular-nums text-muted">{counts[f]}</span>
+            </button>
+          ))}
         </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
-        >
-          Refresh
-        </button>
+        <SearchInput value={query} onChange={setQuery} placeholder={t.tenants.filterPlaceholder} label={t.tenants.filter} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Tenants" value={summaries.length} />
-        <Metric
-          label="Tickets"
-          value={totals.ticketCount}
-          detail={`${totals.activeTicketCount} active · ${totals.escalationCount} escalated`}
-          tone={totals.escalationCount > 0 ? "danger" : "default"}
-        />
-        <Metric
-          label="Workers"
-          value={totals.workerCount}
-          detail={`${totals.activeWorkerCount} active`}
-        />
-        <Metric label="Pending PRs" value={totals.pendingPrCount} />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {summaries.map((summary) => (
-          <TenantCard key={summary.name} summary={summary} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TenantCard({ summary }: Readonly<{ summary: TenantSummary }>) {
-  return (
-    <section className="rounded-lg border border-border bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-lg font-semibold text-foreground">
-              {summary.name}
-            </h2>
-            <StatusBadge active={summary.isActive} />
+      <Card className="overflow-hidden">
+        {rows.length === 0 ? <p className="px-5 py-10 text-center text-sm text-muted">{t.tenants.noMatch}</p> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-surface-muted/50 text-left text-xs uppercase tracking-wide text-muted">
+                  <th className="px-5 py-3 font-medium">{t.tenants.colName}</th>
+                  <th className="px-3 py-3 font-medium">{t.tenants.colStatus}</th>
+                  <th className="hidden px-3 py-3 font-medium md:table-cell">{t.tenants.colTarget}</th>
+                  <th className="px-3 py-3 text-right font-medium">{t.tenants.colFleet}</th>
+                  <th className="hidden px-3 py-3 font-medium lg:table-cell">{t.tenants.colRepo}</th>
+                  <th className="w-10 px-5 py-3"><span className="sr-only">{t.common.viewAll}</span></th>
+                </tr>
+              </thead>
+              <tbody className="stagger divide-y divide-border">
+                {rows.map((x, i) => {
+                  const href = `/o/${org.slug}/tenants/${x.id}`;
+                  return (
+                    <tr key={x.id} style={{ "--i": Math.min(i, 12) } as React.CSSProperties} onClick={() => router.push(href)} className="group cursor-pointer transition-colors hover:bg-hover">
+                      <td className="px-5 py-3.5">
+                        <Link href={href} className="flex items-center gap-3 font-medium focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                          <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-raised text-subtle transition-colors group-hover:text-accent"><IconBoxes size={15} /></span>
+                          {x.slug}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <StateBadge tenant={x} />
+                          {runtimeNeedsAttention(runtimeOf(x.id)) ? <RuntimeHealthBadge runtime={runtimeOf(x.id)} /> : null}
+                        </span>
+                      </td>
+                      <td className="hidden px-3 py-3.5 text-muted md:table-cell">{stateName(x.desired_state)}</td>
+                      <td className="px-3 py-3.5 text-right tabular-nums">{x.fleet_size}</td>
+                      <td className="hidden px-3 py-3.5 font-mono text-xs text-muted lg:table-cell">{repoNames.get(String(x.github_repository_id)) ?? String(x.github_repository_id)}</td>
+                      <td className="px-5 py-3.5"><IconArrowRight size={14} className="text-subtle opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <p className="mt-1 text-xs text-muted">
-            CI {summary.ciReadiness ?? "unknown"} · {summary.ticketCount} tickets ·{" "}
-            {summary.workerCount} workers
-          </p>
-        </div>
-        <Link
-          href={`/?tenant=${encodeURIComponent(summary.name)}`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
-        >
-          View fleet
-        </Link>
-      </div>
-
-      <div className="mt-5 grid gap-2 sm:grid-cols-3">
-        <MiniMetric label="Open" value={summary.openTicketCount} />
-        <MiniMetric label="Active" value={summary.activeTicketCount} />
-        <MiniMetric label="Escalated" value={summary.escalationCount} tone="danger" />
-      </div>
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <MiniMetric label="Active workers" value={summary.activeWorkerCount} />
-        <MiniMetric label="Pending PRs" value={summary.pendingPrCount} />
-        <MiniMetric label="Workers" value={summary.workerCount} />
-      </div>
-
-      <TenantActions tenant={summary.name} />
-    </section>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  detail,
-  tone = "default",
-}: Readonly<{
-  label: string;
-  value: number;
-  detail?: string;
-  tone?: "default" | "danger";
-}>) {
-  return (
-    <div className="rounded-lg border border-border bg-surface p-4">
-      <div className="text-xs font-medium uppercase text-muted">{label}</div>
-      <div
-        className={
-          tone === "danger"
-            ? "mt-2 text-2xl font-semibold text-danger"
-            : "mt-2 text-2xl font-semibold text-foreground"
-        }
-      >
-        {value}
-      </div>
-      {detail ? <div className="mt-1 text-xs text-muted">{detail}</div> : null}
+        )}
+        <div className="border-t border-border px-5 py-2.5 text-xs text-muted">{t.tenants.count(rows.length)}</div>
+      </Card>
     </div>
   );
 }
 
-function MiniMetric({
-  label,
-  value,
-  tone = "default",
-}: Readonly<{ label: string; value: number; tone?: "default" | "danger" }>) {
-  return (
-    <div className="rounded-md border border-border bg-background px-3 py-2">
-      <div className="text-xs text-muted">{label}</div>
-      <div
-        className={
-          tone === "danger" && value > 0
-            ? "mt-1 text-lg font-semibold text-danger"
-            : "mt-1 text-lg font-semibold text-foreground"
-        }
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function StatusBadge({ active }: Readonly<{ active: boolean }>) {
-  return (
-    <span
-      className={
-        active
-          ? "rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
-          : "rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-muted"
-      }
-    >
-      {active ? "active" : "idle"}
-    </span>
-  );
-}
-
-function summarizeAllTenants(summaries: TenantSummary[]) {
-  return summaries.reduce(
-    (totals, summary) => ({
-      ticketCount: totals.ticketCount + summary.ticketCount,
-      activeTicketCount: totals.activeTicketCount + summary.activeTicketCount,
-      escalationCount: totals.escalationCount + summary.escalationCount,
-      workerCount: totals.workerCount + summary.workerCount,
-      activeWorkerCount: totals.activeWorkerCount + summary.activeWorkerCount,
-      pendingPrCount: totals.pendingPrCount + summary.pendingPrCount,
-    }),
-    {
-      ticketCount: 0,
-      activeTicketCount: 0,
-      escalationCount: 0,
-      workerCount: 0,
-      activeWorkerCount: 0,
-      pendingPrCount: 0,
-    },
-  );
+/** Header action: admins and developers only (Manager enforces). */
+export function CreateTenantButton() {
+  const { org, role } = useConsole();
+  const { t } = useT();
+  return canOperate(role) ? <LinkButton href={`/o/${org.slug}/tenants/new`} variant="primary"><IconPlus size={15} /> {t.tenants.create}</LinkButton> : null;
 }

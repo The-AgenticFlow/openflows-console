@@ -1,39 +1,41 @@
-// Root layout: global styles + fonts, wraps every page in the TanStack Query
-// Providers and the shared SiteHeader. Owns the app-wide metadata.
+// Root layout: global styles, Inter + JetBrains Mono fonts, TanStack Query
+// providers, and the visitor's language and theme (read from cookies so the
+// first render is already in the right language and colours, with no flash).
+// Deliberately renders no chrome: the signed-in shell lives in
+// `o/[slug]/layout.tsx` and public pages (login) render bare.
 import "./globals.css";
 
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
-import { SiteHeader } from "@/components/site-header";
+import { ToastProvider } from "@/components/ui/toast";
+import { messages } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/server";
+import { PreferencesProvider } from "@/lib/preferences/client";
+import { parseTheme, THEME_COOKIE } from "@/lib/preferences/theme";
 import { Providers } from "@/lib/providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
+const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "OpenFlows Console",
-  description: "Control panel for monitoring & managing OpenFlows",
+  title: { default: "OpenFlows Console", template: "%s · OpenFlows Console" },
+  description: "Manage your OpenFlows organisations, GitHub connections and tenants.",
+  icons: { icon: "/logo.png" },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const [locale, jar] = await Promise.all([getLocale(), cookies()]);
+  const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col bg-background text-foreground">
+    <html lang={locale} data-theme={theme === "system" ? undefined : theme} className={`${inter.variable} ${mono.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full">
         <Providers>
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
+          <PreferencesProvider locale={locale} theme={theme}>
+            <ToastProvider closeLabel={messages(locale).common.close}>{children}</ToastProvider>
+          </PreferencesProvider>
         </Providers>
       </body>
     </html>

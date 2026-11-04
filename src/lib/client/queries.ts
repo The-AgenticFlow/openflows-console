@@ -1,0 +1,124 @@
+// TanStack Query hooks over the typed API client. Keys are scoped by
+// organisation ID so cached data from one organisation never renders in
+// another. Polling (1.5s) runs only while an operation or tenant is in flight.
+"use client";
+
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { isOperationActive, type Role, type TenantAction } from "../manager/contract";
+import { api } from "./api";
+
+const POLL_MS = 1500;
+
+export const keys = {
+  connections: (o: string) => ["org", o, "connections"] as const,
+  tenants: (o: string) => ["org", o, "tenants"] as const,
+  tenant: (o: string, t: string) => ["org", o, "tenant", t] as const,
+  tenantStatus: (o: string, t: string) => ["org", o, "tenant", t, "status"] as const,
+  members: (o: string) => ["org", o, "members"] as const,
+  invitations: (o: string) => ["org", o, "invitations"] as const,
+  operation: (id: string) => ["operation", id] as const,
+};
+
+export const useConnections = (orgId: string) =>
+  useQuery({ queryKey: keys.connections(orgId), queryFn: () => api.listConnections(orgId), retry: false });
+
+export const useTenants = (orgId: string) =>
+  useQuery({
+    queryKey: keys.tenants(orgId),
+    queryFn: () => api.listTenants(orgId),
+    retry: false,
+    refetchInterval: (q) => (q.state.data?.items.some((t) => ["provisioning", "deleting"].includes(t.observed_state)) ? POLL_MS : false),
+  });
+
+export const useTenant = (orgId: string, id: string) =>
+  useQuery({
+    queryKey: keys.tenant(orgId, id),
+    queryFn: () => api.getTenant(orgId, id),
+    retry: false,
+    refetchInterval: (q) => (q.state.data && ["provisioning", "deleting"].includes(q.state.data.observed_state) ? POLL_MS : false),
+  });
+
+export const useTenantStatus = (orgId: string, id: string) =>
+  useQuery({ queryKey: keys.tenantStatus(orgId, id), queryFn: () => api.getTenantStatus(orgId, id), retry: false, refetchInterval: 5000 });
+
+/** Agent chats for a tenant; polls while the tenant is running. Older Managers without the endpoint just yield an error the card hides. */
+export const useAgentActivity = (orgId: string, id: string, enabled: boolean) =>
+  useQuery({ queryKey: [...keys.tenant(orgId, id), "agents"] as const, queryFn: () => api.getAgentActivity(orgId, id), enabled, retry: false, refetchInterval: 10_000 });
+
+export const useMembers = (orgId: string) =>
+  useQuery({ queryKey: keys.members(orgId), queryFn: () => api.listMembers(orgId), retry: false });
+
+export const useOperation = (id: string | null) =>
+  useQuery({
+    queryKey: keys.operation(id ?? ""),
+    queryFn: () => api.getOperation(id!),
+    enabled: !!id,
+    retry: false,
+    refetchInterval: (q) => (q.state.data && !isOperationActive(q.state.data.state) ? false : POLL_MS),
+  });
+
+export const useCoderIdentity = () => useQuery({ queryKey: ["me", "coder"], queryFn: () => api.getCoderIdentity(), retry: false });
+export const useAudit = (orgId: string) =>
+  useInfiniteQuery({
+    queryKey: ["org", orgId, "audit"],
+    queryFn: ({ pageParam }) => api.listAudit(orgId, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+    retry: false,
+  });
+export const useInvitations = (orgId: string, enabled: boolean) =>
+  useQuery({ queryKey: keys.invitations(orgId), queryFn: () => api.listInvitations(orgId), enabled, retry: false });
+/** Operation history, newest first, paged; polls while anything is still running. */
+export const useOperations = (orgId: string) =>
+  useInfiniteQuery({
+    queryKey: ["org", orgId, "operations"],
+    queryFn: ({ pageParam }) => api.listOperations(orgId, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+    retry: false,
+    refetchInterval: (q) => (q.state.data?.pages[0]?.items.some((o) => isOperationActive(o.state)) ? 3000 : false),
+  });
+export const useRepositories = (orgId: string, connectionId: string | undefined) =>
+  useQuery({ queryKey: ["org", orgId, "repos", connectionId], queryFn: () => api.listRepositories(orgId, connectionId!), enabled: !!connectionId, retry: false });
+export const usePlatformOverview = () =>
+  useQuery({ queryKey: ["platform", "overview"], queryFn: () => api.getPlatformOverview(), retry: false, refetchInterval: 15_000 });
+
+/**
+ * GitHub repository id -> "owner/name" for the organisation's active
+ * connection, so tenants (which Manager returns with a repository id only) can
+ * be labelled by name. Empty until the list loads or when unavailable.
+ */
+export function useRepositoryNames(orgId: string): Map<string, string> {
+  const conns = useConnections(orgId);
+  const active = conns.data?.items.find((c) => c.status === "active")?.id;
+  const repos = useRepositories(orgId, active);
+  return new Map((repos.data?.items ?? []).map((r) => [String(r.id), r.full_name]));
+}
+
+/** Latest operation per tenant (via Manager's tenant status endpoint), for dashboard activity. */
+export function useTenantActivity(orgId: string, tenantIds: string[]) {
+  return useQueries({
+    queries: tenantIds.map((id) => ({ queryKey: keys.tenantStatus(orgId, id), queryFn: () => api.getTenantStatus(orgId, id), retry: false, refetchInterval: 10_000 })),
+  });
+}
+
+/** Runs a tenant lifecycle action, then refreshes tenant data. Returns the accepted operation. */
+export function useTenantAction(orgId: string, tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (action: TenantAction) => api.tenantAction(orgId, tenantId, action),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.tenants(orgId) });
+      void qc.invalidateQueries({ queryKey: keys.tenant(orgId, tenantId) });
+    },
+  });
+}
+
+/** Generic people mutation that refreshes the member list. */
+export function useMemberMutation<V>(orgId: string, fn: (v: V) => Promise<unknown>) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: fn, onSuccess: () => void qc.invalidateQueries({ queryKey: keys.members(orgId) }) });
+}
+
+export type { Role };
