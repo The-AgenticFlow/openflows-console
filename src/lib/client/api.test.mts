@@ -100,3 +100,12 @@ test("accepting an invitation sends the token with CSRF and an idempotency key",
   assert.deepEqual(JSON.parse(calls[1].init.body as string), { token: "secret-token" });
   assert.ok((calls[1].init.headers as Record<string, string>)["idempotency-key"]);
 });
+
+test("invitations follow Manager's cursor until the last page", async () => {
+  const inv = (id: string) => ({ invitation_id: id });
+  script = [() => json({ items: [inv("a")], next_cursor: "c1" }), () => json({ items: [inv("b")], next_cursor: null })];
+  const r = await api.listInvitations("o1");
+  assert.deepEqual(r.items.map((i) => (i as unknown as { invitation_id: string }).invitation_id), ["a", "b"]);
+  assert.equal(calls[0].url, "/api/v1/organizations/o1/invitations");
+  assert.equal(calls[1].url, "/api/v1/organizations/o1/invitations?after=c1");
+});
