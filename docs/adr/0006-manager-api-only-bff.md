@@ -26,3 +26,23 @@ Epic #60 turns the Console into the customer-facing product. The browser must ne
 ## Revision (real Manager integration)
 
 Manager now exists on the tenant-runtime-isolation branch and issues its own session cookie and session-bound CSRF token. The Console therefore proxies `/api/v1/*`, `/auth/*` and `/invitations/accept` to Manager through a Next rewrite (`next.config.ts`) instead of running its own BFF routes and mock. The browser calls Manager directly with `X-CSRF-Token` (from `GET /api/v1/auth/csrf`) and an `Idempotency-Key`; Server Components read `/me` and `/organizations` with the user's forwarded cookies. Types follow Manager's real snake_case shapes and roles (`admin`/`developer`/`viewer`). Audit log reads, platform overview, operation/repository/invitation lists are not exposed by Manager yet and are not faked in the UI.
+
+## Revision (Manager read endpoints and invitation page)
+
+The Console now owns the invitation page. `/invitations/accept` is a Console page (public in `proxy.ts`, so a signed-out visitor keeps the link, signs in with GitHub and returns to it); it previews the invitation with `GET /api/v1/invitations/preview` and accepts it with `POST /api/v1/invitations/accept`. The rewrite for that path is removed.
+
+Manager endpoints beyond the original lifecycle API that the Console relies on, and what happens when one is missing:
+
+| Endpoint | Used for | If absent |
+| --- | --- | --- |
+| `GET /organizations/{org}/audit` | Audit log | Audit section shows its error state |
+| `GET /organizations/{org}/invitations` | Pending invitations | Members page shows its error state |
+| `GET /organizations/{org}/github/connections/{id}/repositories` | Repository names | Tenants show a repository id only |
+| `GET /organizations/{org}/operations` | Operation history | Activity page shows its error state |
+| `GET /platform/overview` | Platform page | Platform page shows its error state |
+| `GET /organizations/{org}` provisioning summary | Setup progress and failure reason | Falls back to organisation status only |
+| `GET /organizations/{org}/tenants/{tenant}/status` `runtime` block | Runtime health | Health badge and Restart are hidden |
+| `GET /organizations/{org}/tenants/{tenant}/agent-activity` | Agent activity card and failed-agent alerts | The card is hidden and no alert is raised |
+| `GET /invitations/preview` | Invitation page | Page shows the unavailable state |
+
+The agent-activity response carries a stable `error_code` only. The AI provider's error detail is never forwarded, because it can contain account identifiers.
