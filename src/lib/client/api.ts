@@ -181,8 +181,19 @@ export const api = {
     }
     return { items };
   },
-  listRepositories: (orgId: string, connectionId: string) =>
-    request<{ items: Repository[] }>("GET", `${org(orgId)}/github/connections/${encodeURIComponent(connectionId)}/repositories`),
+  /** Every accessible repository: Manager pages them (up to 100 a page), so follow the cursor (bounded: 100 pages, Manager stores at most 10,000). */
+  listRepositories: async (orgId: string, connectionId: string): Promise<{ items: Repository[] }> => {
+    const base = `${org(orgId)}/github/connections/${encodeURIComponent(connectionId)}/repositories`;
+    const items: Repository[] = [];
+    let after: string | null = null;
+    for (let page = 0; page < 100; page++) {
+      const r: { items: Repository[]; next_cursor?: string | null } = await request("GET", `${base}?limit=100${after ? `&after=${encodeURIComponent(after)}` : ""}`);
+      items.push(...r.items);
+      if (!r.next_cursor) break;
+      after = r.next_cursor;
+    }
+    return { items };
+  },
   getPlatformOverview: () => request<PlatformOverview>("GET", "/platform/overview"),
   signOut: async () => {
     try {
