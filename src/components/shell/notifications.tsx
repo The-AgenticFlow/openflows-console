@@ -16,7 +16,7 @@ import { type ComponentType, useEffect, useMemo, useRef, useState, useSyncExtern
 
 import { api } from "@/lib/client/api";
 import { keys, useCoderIdentity, useConnections, useInvitations, useTenantActivity, useTenants } from "@/lib/client/queries";
-import { canAdminister, canOperate, runtimeNeedsAttention, tenantStateLabel } from "@/lib/manager/contract";
+import { canAdminister, canOperate, failedAgentChats, runtimeNeedsAttention, tenantStateLabel } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
 import { IconAlert, IconBell, IconBoxes, IconCheck, IconGithub, IconInfo, IconMail, IconTerminal } from "../ui/icons";
@@ -63,7 +63,7 @@ function useAlerts(): Alert[] {
     queries: running.map((x) => ({ queryKey: [...keys.tenant(orgId, x.id), "agents"] as const, queryFn: () => api.getAgentActivity(orgId, x.id), retry: false, refetchInterval: 15_000 })),
   });
   const agentFailures = running
-    .map((x, i) => ({ id: x.id, slug: x.slug, failed: (agents[i]?.data?.chats ?? []).filter((c) => c.status === "error") }))
+    .map((x, i) => ({ id: x.id, slug: x.slug, failed: failedAgentChats(agents[i]?.data?.chats) }))
     .filter((x) => x.failed.length)
     .map((x) => `${x.id}|${x.slug}|${x.failed.length}|${x.failed[0].error_code ?? "AGENT_ERROR"}`)
     .join();

@@ -4,12 +4,11 @@
 // stable `error_code`; the AI provider's raw error text never reaches the
 // Console (it can contain account identifiers). The card hides itself if the
 // Manager does not offer the endpoint, so an older Manager shows nothing
-// rather than an error. `failedAgentCount` feeds the notification bell.
+// rather than an error. The bell raises its alert from the same data (`failedAgentChats` in contract.ts).
 "use client";
 
 import { useAgentActivity } from "@/lib/client/queries";
 import { relativeTime } from "@/lib/i18n";
-import type { AgentChat } from "@/lib/manager/contract";
 import { useT } from "@/lib/preferences/client";
 
 import { useConsole } from "./shell/console-context";
@@ -26,8 +25,6 @@ const TONE: Record<string, Tone> = {
   gone: "neutral",
   unknown: "neutral",
 };
-
-export const failedAgentCount = (chats: AgentChat[] | undefined) => (chats ?? []).filter((c) => c.status === "error").length;
 
 export function AgentActivityCard({ tenantId, repoName }: Readonly<{ tenantId: string; repoName?: string }>) {
   const { orgId } = useConsole();

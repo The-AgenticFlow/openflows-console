@@ -23,7 +23,12 @@ const csp = [
   "form-action 'self' https://github.com",
 ].join("; ");
 
+// End-to-end tests build into their own directory so they never clash with a
+// running `pnpm dev` (see playwright.config.ts). Unset in normal use.
+const distDir = process.env.NEXT_DIST_DIR || ".next";
+
 const nextConfig: NextConfig = {
+  distDir,
   output: "standalone",
   devIndicators: false, // hide the Next.js dev badge; it overlaps the sidebar footer
   async headers() {

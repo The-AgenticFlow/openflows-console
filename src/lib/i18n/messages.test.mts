@@ -34,3 +34,14 @@ test("templated functions produce text in both languages", () => {
   assert.match(en.members.listBody(1, "Acme"), /1 member in Acme/);
   assert.match(fr.checklist.progress(1, 4), /1 étape sur 4/);
 });
+
+test("every agent status and failure code has copy in both languages", async () => {
+  const { AGENT_ERROR_CODES, AGENT_STATUSES } = await import("../manager/contract.ts");
+  for (const [name, dict] of [["en", en], ["fr", fr]] as const) {
+    for (const code of AGENT_ERROR_CODES) assert.ok(dict.agents.errors[code]?.length > 20, `${name} error ${code}`);
+    for (const status of AGENT_STATUSES) assert.ok(dict.agents.status[status]?.length > 0, `${name} status ${status}`);
+  }
+  // A failure explanation must tell the operator what to do next.
+  assert.match(en.agents.errors.AI_USAGE_LIMIT, /credit|limit/i);
+  assert.match(fr.agents.errors.AI_USAGE_LIMIT, /crédit|limite/i);
+});

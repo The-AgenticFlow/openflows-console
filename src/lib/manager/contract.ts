@@ -162,11 +162,19 @@ export interface AgentChat {
   ticket_id: string;
   role: string;
   status: string;
-  error_code: "AI_USAGE_LIMIT" | "AI_RATE_LIMITED" | "AI_AUTH_FAILED" | "AGENT_ERROR" | null;
+  error_code: (typeof AGENT_ERROR_CODES)[number] | null;
   retryable: boolean | null;
   started_at: string;
   updated_at: string | null;
 }
+
+/** Every stable failure code Manager can return on an agent chat. */
+export const AGENT_ERROR_CODES = ["AI_USAGE_LIMIT", "AI_RATE_LIMITED", "AI_AUTH_FAILED", "AGENT_ERROR"] as const;
+/** Chat statuses Manager reports (Coder's, plus `gone` and `unknown`). */
+export const AGENT_STATUSES = ["pending", "running", "waiting", "requires_action", "completed", "error", "gone", "unknown"] as const;
+
+/** The chats that stopped on an error; these raise a bell alert. */
+export const failedAgentChats = (chats: readonly AgentChat[] | undefined): AgentChat[] => (chats ?? []).filter((c) => c.status === "error");
 
 export interface GithubConnection {
   id: string;

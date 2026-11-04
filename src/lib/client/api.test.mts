@@ -76,3 +76,27 @@ test("network failure is a retryable ConsoleError", async () => {
   globalThis.fetch = (async () => { throw new TypeError("fetch failed"); }) as typeof fetch;
   await assert.rejects(api.listTenants("o"), (e: unknown) => e instanceof ConsoleError && e.retryable && e.status === 0);
 });
+
+test("agent activity is a plain GET on the tenant, with no CSRF", async () => {
+  script = [() => json({ chats: [{ ticket_id: "T-1", role: "forge", status: "error", error_code: "AI_USAGE_LIMIT", retryable: false, started_at: "2026-11-03T00:00:00Z", updated_at: null }] })];
+  const r = await api.getAgentActivity("org 1", "ten/1");
+  assert.equal(calls[0].url, "/api/v1/organizations/org%201/tenants/ten%2F1/agent-activity");
+  assert.equal(r.chats[0].error_code, "AI_USAGE_LIMIT");
+  assert.equal((calls[0].init.headers as Record<string, string>)["x-csrf-token"], undefined);
+});
+
+test("operation history pages with the cursor Manager returned", async () => {
+  script = [() => json({ items: [], next_cursor: null }), () => json({ items: [], next_cursor: null })];
+  await api.listOperations("o1");
+  await api.listOperations("o1", "cur sor");
+  assert.equal(calls[0].url, "/api/v1/organizations/o1/operations?limit=50");
+  assert.equal(calls[1].url, "/api/v1/organizations/o1/operations?limit=50&after=cur%20sor");
+});
+
+test("accepting an invitation sends the token with CSRF and an idempotency key", async () => {
+  script = [() => json({ csrf_token: "t" }), () => json({ organization_id: "o1" })];
+  const r = await api.acceptInvitation("secret-token");
+  assert.equal(r.organization_id, "o1");
+  assert.deepEqual(JSON.parse(calls[1].init.body as string), { token: "secret-token" });
+  assert.ok((calls[1].init.headers as Record<string, string>)["idempotency-key"]);
+});

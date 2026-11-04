@@ -4,10 +4,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  AGENT_ERROR_CODES,
+  AGENT_STATUSES,
   canAdminister,
   canOperate,
   describeError,
+  failedAgentChats,
   isOperationActive,
+  runtimeNeedsAttention,
   setupFailureMessage,
   slugify,
   tenantActions,
@@ -62,4 +66,23 @@ test("setup failures explain the cause in product language and never echo raw co
   assert.match(setupFailureMessage("PROVISIONER_NOT_READY"), /provisioner/i);
   assert.equal(setupFailureMessage(null), "Setup did not finish.");
   assert.equal(setupFailureMessage("SOMETHING_NEW"), "Setup did not finish.");
+});
+
+test("runtime attention: only a silent runtime needs the operator", () => {
+  const at = (health: "inactive" | "starting" | "healthy" | "unresponsive" | "restart_required") => ({ health, registered_at: null, last_heartbeat_at: null });
+  assert.equal(runtimeNeedsAttention(at("unresponsive")), true);
+  assert.equal(runtimeNeedsAttention(at("restart_required")), true);
+  for (const ok of ["healthy", "starting", "inactive"] as const) assert.equal(runtimeNeedsAttention(at(ok)), false, ok);
+  // An older Manager sends no runtime block at all: never alert on absence.
+  assert.equal(runtimeNeedsAttention(undefined), false);
+  assert.equal(runtimeNeedsAttention(null), false);
+});
+
+test("failed agent chats: only chats in error count, absence is empty", () => {
+  const chat = (status: string, ticket_id: string) => ({ ticket_id, role: "forge", status, error_code: null, retryable: null, started_at: "2026-11-03T00:00:00Z", updated_at: null });
+  const out = failedAgentChats([chat("running", "A"), chat("error", "B"), chat("completed", "C"), chat("error", "D")]);
+  assert.deepEqual(out.map((c) => c.ticket_id), ["B", "D"]);
+  assert.deepEqual(failedAgentChats([]), []);
+  assert.deepEqual(failedAgentChats(undefined), []);
+  assert.ok(AGENT_ERROR_CODES.length > 0 && AGENT_STATUSES.includes("error"));
 });
