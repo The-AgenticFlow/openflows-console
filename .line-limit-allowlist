@@ -1,0 +1,14 @@
+# Files allowed to grow without limit (reviewable exceptions).
+#
+# The line-limit check (scripts/check_line_limits.py) treats any file listed
+# here as exempt: it may grow freely. Adding a path to this file is itself a
+# normal PR change that reviewers see, which is how "necessary" growth of an
+# existing file is approved.
+#
+# By default this contains the i18n dictionaries, which are expected to grow as
+# translations are added. To freeze a file again, remove it from this list.
+#
+# Entries may be exact paths (e.g. src/lib/i18n/en.ts) or glob patterns.
+
+src/lib/i18n/en.ts
+src/lib/i18n/fr.ts
