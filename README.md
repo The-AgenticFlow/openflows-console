@@ -69,7 +69,7 @@ docs/
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, workflow, and quality gates. To run the whole stack (Manager, Coder, GitHub App, agents) locally, follow [docs/local-development.md](./docs/local-development.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, workflow, and quality gates. To run the Console locally against a working OpenFlows stack, follow [docs/local-development.md](./docs/local-development.md).
 
 ## Roadmap
 

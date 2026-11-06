@@ -28,6 +28,7 @@ import {
   type TenantAction,
   type TenantStatus,
 } from "../manager/contract.ts";
+import { allPages } from "./paging.ts";
 
 export class ConsoleError extends Error {
   readonly code: string;
@@ -169,20 +170,9 @@ export const api = {
     request<CursorPage<OperationListItem>>("GET", `${org(orgId)}/operations?limit=50${after ? `&after=${encodeURIComponent(after)}` : ""}`),
   listAudit: (orgId: string, after?: string) =>
     request<CursorPage<AuditEntry>>("GET", `${org(orgId)}/audit?limit=50${after ? `&after=${encodeURIComponent(after)}` : ""}`),
-  /** All outstanding invitations: Manager pages them, so follow the cursor (bounded, 20 pages). */
-  listInvitations: async (orgId: string): Promise<{ items: PendingInvitation[] }> => {
-    const items: PendingInvitation[] = [];
-    let after: string | null = null;
-    for (let page = 0; page < 20; page++) {
-      const r: { items: PendingInvitation[]; next_cursor?: string | null } = await request("GET", `${org(orgId)}/invitations${after ? `?after=${encodeURIComponent(after)}` : ""}`);
-      items.push(...r.items);
-      if (!r.next_cursor) break;
-      after = r.next_cursor;
-    }
-    return { items };
-  },
+  listInvitations: (orgId: string) => allPages<PendingInvitation>((q) => request("GET", `${org(orgId)}/invitations${q}`)),
   listRepositories: (orgId: string, connectionId: string) =>
-    request<{ items: Repository[] }>("GET", `${org(orgId)}/github/connections/${encodeURIComponent(connectionId)}/repositories`),
+    allPages<Repository>((q) => request("GET", `${org(orgId)}/github/connections/${encodeURIComponent(connectionId)}/repositories${q}`), { limit: 100, maxPages: 100 }),
   getPlatformOverview: () => request<PlatformOverview>("GET", "/platform/overview"),
   signOut: async () => {
     try {
