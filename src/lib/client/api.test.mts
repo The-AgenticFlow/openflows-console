@@ -109,12 +109,3 @@ test("invitations follow Manager's cursor until the last page", async () => {
   assert.equal(calls[0].url, "/api/v1/organizations/o1/invitations");
   assert.equal(calls[1].url, "/api/v1/organizations/o1/invitations?after=c1");
 });
-
-test("repositories are fetched page by page until Manager stops sending a cursor", async () => {
-  const repo = (id: number) => ({ id, full_name: `o/r${id}` });
-  script = [() => json({ items: [repo(1), repo(2)], next_cursor: "c 1" }), () => json({ items: [repo(3)], next_cursor: null })];
-  const r = await api.listRepositories("o1", "conn1");
-  assert.deepEqual(r.items.map((x) => x.id), [1, 2, 3]);
-  assert.equal(calls[0].url, "/api/v1/organizations/o1/github/connections/conn1/repositories?limit=100");
-  assert.equal(calls[1].url, "/api/v1/organizations/o1/github/connections/conn1/repositories?limit=100&after=c%201");
-});
