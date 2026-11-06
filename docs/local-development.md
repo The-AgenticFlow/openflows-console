@@ -21,11 +21,30 @@ Follow that runbook until these are true, then come back here:
       administrator, and the Manager's `doctor` command reports no failures.
 - [ ] You have the GitHub App from the runbook (App ID, client ID, secret).
 
-## 1. Allow the Console to sign in through the GitHub App
+## 1. Point Manager and GitHub at the Console
 
-The Console is the address people sign in from, so the GitHub App must list its
-callbacks. In GitHub, open the App's settings and add these under **Callback
-URLs** (keep any that are already there):
+People sign in through the Console, so Manager and the GitHub App must both know
+the Console's address. This is the one place the runbook's defaults do not fit a
+local Console: its example uses an HTTPS host, but locally the Console is plain
+HTTP on `localhost:3000`.
+
+**a. Manager settings** (in the env file you gave Manager, for example
+`.env.openflows`):
+
+```sh
+OPENFLOWS_PUBLIC_URL=http://localhost:3000   # the Console's origin: no trailing path
+OPENFLOWS_AUTH_ALLOW_LOOPBACK=true           # lets Manager accept HTTP on localhost
+OPENFLOWS_AUTH_COOKIE_SECURE=false           # session cookies over HTTP; local only
+```
+
+Manager refuses to start with an `http://` public URL unless the loopback
+setting is `true`. Use real HTTPS values outside a local machine. Restart
+Manager after changing them. If you ran Manager's `setup` earlier with a
+different public URL, run it again: it registers the redirect address
+(`<OPENFLOWS_PUBLIC_URL>/auth/coder/callback`) for linking Coder accounts.
+
+**b. The GitHub App.** In GitHub, open the App's settings and add these under
+**Callback URLs** (keep any that are already there):
 
 ```
 http://localhost:3000/auth/github/callback
@@ -38,8 +57,8 @@ and set the **Setup URL** to:
 http://localhost:3000/api/v1/github/setup
 ```
 
-Also check that the Manager's `OPENFLOWS_PUBLIC_URL` is `http://localhost:3000`,
-because the Manager builds its sign-in redirects from it.
+The Console passes `/api/v1` and `/auth` straight through to Manager, so these
+are the same paths the runbook lists, on the Console's address.
 
 ## 2. Start the Console
 
@@ -47,14 +66,24 @@ You need Node.js 24 and [pnpm](https://pnpm.io).
 
 ```sh
 cd openflows-console
-cp .env.example .env.local     # set OPENFLOWS_MANAGER_URL (default http://127.0.0.1:3002)
+cp .env.example .env.local
 pnpm install
 pnpm dev                       # http://localhost:3000
 ```
 
-`OPENFLOWS_MANAGER_URL` is the only required setting. It must be the address
-your browser machine can reach Manager on. The optional footer links are
-described in `CONTRIBUTING.md`.
+The Console has one required setting, in `.env.local`:
+
+```sh
+OPENFLOWS_MANAGER_URL=http://127.0.0.1:3002
+```
+
+Set it to the address Manager listens on (`OPENFLOWS_MANAGER_ADDR` in Manager's
+env file), as reachable from the machine running the Console. If Manager is
+bound to another address, for example `172.17.0.1:3002` on Linux so containers
+can reach it, use that address here. Nothing else is required: the optional
+footer links are in `CONTRIBUTING.md`. The Console reads this setting when it
+starts, so restart `pnpm dev` after changing it. Do not put secrets in it; the
+Console never holds a GitHub or Coder credential.
 
 ## 3. First run
 
@@ -105,7 +134,10 @@ release names, Coder tokens). The ones you meet from the Console:
 
 | Symptom | Cause and fix |
 | --- | --- |
-| Sign-in loops or GitHub says the callback is not allowed | Add the callback URLs from step 1 to the GitHub App |
+| Manager refuses to start with "public origin requires HTTPS" | Set `OPENFLOWS_AUTH_ALLOW_LOOPBACK=true` (step 1a) |
+| Sign-in loops, or GitHub says the callback is not allowed | Add the callback URLs from step 1b to the GitHub App, and check `OPENFLOWS_PUBLIC_URL` is exactly `http://localhost:3000` |
+| Signing in works but you land back on the sign-in page (some browsers) | The browser refused a `Secure` session cookie on plain HTTP: set `OPENFLOWS_AUTH_COOKIE_SECURE=false` and restart Manager |
+| "Link your Coder account" fails | `setup` was run with another public URL; run it again so the Coder redirect address matches |
 | Every page shows an error right after sign-in | `OPENFLOWS_MANAGER_URL` is wrong, or Manager is not running |
 | Agent activity shows `AI_USAGE_LIMIT` | The AI provider refused for credit or usage; add credit or change the model in Coder |
 | Agent activity shows `AI_AUTH_FAILED` | The provider key in Coder is wrong, expired or has stray whitespace |
