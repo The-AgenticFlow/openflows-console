@@ -48,6 +48,31 @@ pnpm start
 pnpm lint
 ```
 
+## Docker
+
+Pre-built production images are published to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/the-agenticflow/openflows-console:latest
+```
+
+Run it against a running OpenFlows Manager (the only required runtime variable):
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e OPENFLOWS_MANAGER_URL=http://host.docker.internal:3002 \
+  ghcr.io/the-agenticflow/openflows-console:latest
+```
+
+Then open [http://localhost:3000](http://localhost:3000). On Linux, replace `host.docker.internal` with the Docker bridge address (usually `172.17.0.1`, see [docs/local-development.md](./docs/local-development.md)).
+
+Available tags: `latest` (newest `v*` release), `vX.Y.Z` / `vX.Y` (semver), `edge` (main), `develop`, and `sha-<short>` for every build. To build the image yourself:
+
+```bash
+docker build -t openflows-console .
+docker run --rm -p 3000:3000 -e OPENFLOWS_MANAGER_URL=http://host.docker.internal:3002 openflows-console
+```
+
 ## Technology
 
 Built with [Next.js](https://nextjs.org) (App Router), [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), and [Tailwind CSS](https://tailwindcss.com) — always on the latest stable versions — plus the [TanStack](https://tanstack.com) suite (Query, Table, Virtual) for data, tables, and lists.
