@@ -328,6 +328,10 @@ and steps 4 and 5.
 
 ## Troubleshooting
 
+Most problems come from the OpenFlows stack rather than the Console; the
+runbook covers those (Linux networking, secret file permissions, template
+release names, Coder tokens). The ones you meet from the Console:
+
 | Symptom | Cause and fix |
 | --- | --- |
 | Manager refuses to start: "public origin requires HTTPS" | Set `OPENFLOWS_AUTH_ALLOW_LOOPBACK=true` (step 2) |
