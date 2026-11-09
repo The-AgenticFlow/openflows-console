@@ -46,6 +46,11 @@ git checkout feat/console-manager-api
 
 ## 1. Create the GitHub App
 
+> **Planned:** this manual step will be replaced by a one-click flow
+> ([openflows#537](https://github.com/The-AgenticFlow/openflows/issues/537))
+> where Manager pre-fills a GitHub App manifest and GitHub delivers the
+> credentials back automatically. Until then, create the App by hand:
+
 In GitHub open *Settings -> Developer settings -> GitHub Apps -> New GitHub
 App* and fill in:
 
