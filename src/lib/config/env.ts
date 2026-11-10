@@ -1,9 +1,9 @@
 // Runtime environment access and startup validation for server-side OpenFlows
 // integrations. This is the only module that reads process.env (next.config.ts
-// is the single documented exception: rewrites resolve before app code runs).
+// is the single documented exception, for build-time settings).
 export interface EnvSchema {
   // Base URL of OpenFlows Manager. The Console reaches only its /api/v1 (and
-  // the login pages under /auth), same-origin through a Next rewrite.
+  // the login pages under /auth), same-origin through the proxy in src/proxy.ts, read at request time.
   OPENFLOWS_MANAGER_URL: string;
   // Optional links shown in the sign-in page footer. Each is rendered only when
   // set, so the Console never links to a page an operator does not have.

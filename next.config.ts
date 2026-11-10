@@ -3,9 +3,9 @@ import type { NextConfig } from "next";
 // The Console reaches OpenFlows Manager through this same-origin proxy so the
 // browser holds Manager's own session + CSRF cookies on the Console's origin
 // (the GitHub OAuth callback registered for the OpenFlows App is a Console URL).
-// `OPENFLOWS_MANAGER_URL` is read here at build/start time because rewrites are
-// resolved before the app's `getEnv()` module can run.
-const manager = process.env.OPENFLOWS_MANAGER_URL ?? "http://127.0.0.1:3002";
+// The proxy itself lives in src/proxy.ts and reads `OPENFLOWS_MANAGER_URL` at
+// request time. It is not a next.config rewrite: rewrites are baked in at build
+// time, so a prebuilt image could not be pointed at a Manager when it starts.
 
 // Baseline browser hardening. The Console renders no third-party content and
 // only talks to its own origin (Manager is proxied), so the policy is strict.
@@ -43,12 +43,6 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
-    ];
-  },
-  async rewrites() {
-    return [
-      { source: "/api/v1/:path*", destination: `${manager}/api/v1/:path*` },
-      { source: "/auth/:path*", destination: `${manager}/auth/:path*` },
     ];
   },
 };
