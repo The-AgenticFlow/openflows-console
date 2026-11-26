@@ -50,27 +50,41 @@ pnpm lint
 
 ## Docker
 
-Pre-built production images are published to GitHub Container Registry:
+Pre-built production images are published to GitHub Container Registry. Until the first `v*` release is tagged, `develop` is the tag to use (`latest` and the version tags do not exist yet):
 
 ```bash
-docker pull ghcr.io/the-agenticflow/openflows-console:latest
+docker pull ghcr.io/the-agenticflow/openflows-console:develop
 ```
 
-Run it against a running OpenFlows Manager (the only required runtime variable):
+### Recommended: let the OpenFlows repository start it
+
+From a checkout of the [openflows](https://github.com/The-AgenticFlow/openflows) repository, with a Manager already running:
 
 ```bash
-docker run --rm -p 3000:3000 \
+./scripts/console.sh
+```
+
+It finds the Manager, starts this image on <http://localhost:3000> and checks that sign-in reaches the Manager. To start the whole control plane in Docker together with the Console, use `./scripts/up.sh` from that repository (see its operator runbook). Both handle the Docker networking below for you.
+
+### Manually
+
+The Console needs one runtime variable, `OPENFLOWS_MANAGER_URL`, read when the container starts:
+
+```bash
+docker run --rm -p 127.0.0.1:3000:3000 \
+  --add-host host.docker.internal:host-gateway \
   -e OPENFLOWS_MANAGER_URL=http://host.docker.internal:3002 \
-  ghcr.io/the-agenticflow/openflows-console:latest
+  ghcr.io/the-agenticflow/openflows-console:develop
 ```
 
-Then open [http://localhost:3000](http://localhost:3000). On Linux, replace `host.docker.internal` with the Docker bridge address (usually `172.17.0.1`, see [docs/local-development.md](./docs/local-development.md)).
+Then open [http://localhost:3000](http://localhost:3000). A container can reach a Manager on the host only if the Manager listens on an address the container can route to and no firewall drops the traffic. On Linux, a Manager bound to `127.0.0.1`, or a host firewall (for example `ufw`) that blocks the Docker bridge, makes sign-in hang on "Redirecting to GitHub…" while `docker logs` shows `ETIMEDOUT` or `ECONNREFUSED`. If that happens, use `./scripts/console.sh` (it runs the container on the host network on Linux), or see [docs/local-development.md](./docs/local-development.md).
 
-Available tags: `latest` (newest `v*` release), `vX.Y.Z` / `vX.Y` (semver), `edge` (main), `develop`, and `sha-<short>` for every build. To build the image yourself:
+Available tags: `edge` (main), `develop`, `sha-<short>` for every build, and, once a `v*` release is tagged, `latest`, `vX.Y.Z` and `vX.Y`. To build the image yourself:
 
 ```bash
 docker build -t openflows-console .
-docker run --rm -p 3000:3000 -e OPENFLOWS_MANAGER_URL=http://host.docker.internal:3002 openflows-console
+docker run --rm -p 127.0.0.1:3000:3000 --add-host host.docker.internal:host-gateway \
+  -e OPENFLOWS_MANAGER_URL=http://host.docker.internal:3002 openflows-console
 ```
 
 ## Technology
